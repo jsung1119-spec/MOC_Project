@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MOC Decision Result | PSM AI Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+        }
+        .tonal-layer-1 {
+            background-color: #FFFFFF;
+            border: 1px solid #E9ECEF;
+        }
+        .status-accent-blue {
+            border-left: 4px solid #0041c9;
+        }
+        .status-accent-warning {
+            border-left: 4px solid #ff9900;
+        }
+        .pulse-ring {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 65, 201, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 65, 201, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 65, 201, 0); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary-container": "#8393bc",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#0039b3",
+                        "secondary": "#0041c9",
+                        "surface-bright": "#f8f9fa",
+                        "primary-container": "#1b2b4e",
+                        "outline-variant": "#c5c6cf",
+                        "on-primary-fixed-variant": "#37466b",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb86f",
+                        "on-primary-fixed": "#081a3d",
+                        "primary-fixed": "#d9e2ff",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#e4e7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-tertiary-container": "#d57f00",
+                        "surface-container": "#edeeef",
+                        "on-surface-variant": "#45464e",
+                        "tertiary-container": "#432500",
+                        "on-secondary": "#ffffff",
+                        "background": "#f8f9fa",
+                        "primary-fixed-dim": "#b6c6f1",
+                        "surface-variant": "#e1e3e4",
+                        "error": "#ba1a1a",
+                        "outline": "#75777f",
+                        "surface-dim": "#d9dadb",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3132",
+                        "primary": "#041638",
+                        "on-surface": "#191c1d",
+                        "inverse-primary": "#b6c6f1",
+                        "secondary-container": "#0356ff",
+                        "surface-container-low": "#f3f4f5",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "tertiary": "#271300",
+                        "surface": "#f8f9fa",
+                        "secondary-fixed-dim": "#b6c4ff",
+                        "surface-tint": "#4e5e84",
+                        "tertiary-fixed": "#ffdcbd",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#001551",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#dce1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "unit-6": "24px",
+                        "unit-3": "12px",
+                        "unit-12": "48px",
+                        "touch-target": "48px",
+                        "unit-4": "16px",
+                        "base": "4px",
+                        "unit-16": "64px",
+                        "gutter": "24px",
+                        "unit-8": "32px",
+                        "unit-2": "8px",
+                        "margin-desktop": "32px",
+                        "unit-1": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col py-unit-6 px-unit-4 z-50">
+<div class="mb-unit-8 px-unit-2">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">PSM AI Assistant</h1>
+<p class="font-label-md text-label-md text-on-surface-variant opacity-70">안전 관리 시스템</p>
+</div>
+<nav class="flex-grow space-y-unit-2">
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">대시보드</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors font-bold border-r-2 border-secondary text-secondary bg-surface-container-low" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">MOC 이력</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">가이드라인</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">설정</span>
+</a>
+</nav>
+<div class="mt-auto pt-unit-6">
+<button class="w-full flex items-center justify-center gap-unit-2 bg-primary text-on-primary py-touch-target rounded font-semibold active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+            새 안전 검토
+        </button>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-[280px] h-touch-target bg-surface border-b border-outline-variant z-40 flex items-center justify-between px-margin-desktop">
+<div class="flex items-center bg-surface-container-low rounded-full px-unit-4 py-unit-1 w-96">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm w-full" placeholder="안전 기록 검색..." type="text"/>
+</div>
+<div class="flex items-center gap-unit-4">
+<button class="p-unit-2 hover:bg-surface-container-low rounded-full transition-all text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-unit-2 hover:bg-surface-container-low rounded-full transition-all text-on-surface-variant">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-unit-8 w-unit-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="안전 관리자 프로필" class="object-cover w-full h-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD71MxYd5g8WDaSS1oUZlb37LieScVkhwAfgUS2uwHevgiHAXPaIXJ8KPXTINmxEbJ5bC5M6n1OWldLRBZCqf0zFwt_j_xmNVqPjh-_Ivt499nE25eLSTZeqTfCOc5wkvyn44cdBdZcxnWyXngany7G6iCsD-xKOmO6KnXigAy8O9rjxfeE_K3VbjaFTLyJRnfJ3oB6GQxTxyJzcc1EP_fuKKu-oHfsX9eM7VtwPEq2R4rojbQcfNxihg"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[280px] mt-touch-target p-margin-desktop pb-unit-16">
+<!-- Success/Warning Banner -->
+<div class="bg-secondary-container/10 border border-secondary-container rounded-lg p-unit-6 flex items-start gap-unit-6 mb-unit-8">
+<div class="w-unit-12 h-unit-12 bg-secondary rounded-full flex items-center justify-center text-on-secondary pulse-ring">
+<span class="material-symbols-outlined text-headline-md">info</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-secondary mb-unit-1">MOC 분석 완료</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">입력하신 내용을 바탕으로 변경 관리(MOC) 프로세스가 시작되었습니다. 실행 전 체계적인 검토가 필수적입니다.</p>
+</div>
+</div>
+<!-- Bento Layout Grid -->
+<div class="grid grid-cols-12 gap-unit-6">
+<!-- Main Result Card (High Priority) -->
+<div class="col-span-12 lg:col-span-8 tonal-layer-1 rounded-xl p-unit-8 status-accent-blue shadow-sm">
+<div class="flex justify-between items-start mb-unit-6">
+<div>
+<span class="bg-secondary/15 text-secondary px-unit-3 py-unit-1 rounded-full text-label-md uppercase tracking-wider mb-unit-3 inline-block font-bold">판단 결과</span>
+<h3 class="font-headline-lg text-headline-lg text-primary mt-unit-2 leading-tight">본 작업은 <span class="text-secondary">MOC 대상(2등급)</span>입니다</h3>
+</div>
+<div class="text-right">
+<p class="text-label-md text-outline">보고서 ID</p>
+<p class="font-bold font-body-md">#PSM-2023-9942</p>
+</div>
+</div>
+<hr class="border-outline-variant mb-unit-6"/>
+<!-- Analysis Section -->
+<div class="space-y-unit-6">
+<h4 class="font-headline-sm text-headline-sm text-primary">분석 및 트리거</h4>
+<ul class="space-y-unit-4">
+<li class="flex items-start gap-unit-4">
+<span class="material-symbols-outlined text-secondary mt-1">check_circle</span>
+<div class="font-body-md">
+<strong class="text-primary block mb-unit-1">자재 변경 확인됨</strong>
+<p class="text-on-surface-variant">Type-A 씰을 세라믹 복합재 변형으로 교체하는 것은 본 시스템의 "동일 품목 교체(RIK)" 기준을 초과합니다.</p>
+</div>
+</li>
+<li class="flex items-start gap-unit-4">
+<span class="material-symbols-outlined text-secondary mt-1">check_circle</span>
+<div class="font-body-md">
+<strong class="text-primary block mb-unit-1">운전 조건 변경</strong>
+<p class="text-on-surface-variant">테스트를 위해 계획된 정격 압력 120% 증가는 영구적인 공정 변경 가이드라인에 해당합니다.</p>
+</div>
+</li>
+<li class="flex items-start gap-unit-4">
+<span class="material-symbols-outlined text-outline mt-1">radio_button_unchecked</span>
+<div class="font-body-md opacity-60">
+<strong class="text-primary block mb-unit-1">설비 재설계</strong>
+<p class="text-on-surface-variant">현재 제출된 내용에서 물리적 구조 변경은 감지되지 않았습니다.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<!-- Side Actions/Stats (Asymmetric Layout) -->
+<div class="col-span-12 lg:col-span-4 space-y-unit-6">
+<div class="tonal-layer-1 rounded-xl p-unit-6 bg-primary text-on-primary">
+<h4 class="font-label-md text-label-md opacity-80 uppercase tracking-widest mb-unit-4">필수 서류</h4>
+<div class="space-y-unit-3">
+<div class="flex items-center gap-unit-3 p-unit-3 bg-white/10 rounded border border-white/5">
+<span class="material-symbols-outlined">edit_document</span>
+<span class="font-body-sm">P&amp;ID 마크업</span>
+</div>
+<div class="flex items-center gap-unit-3 p-unit-3 bg-white/10 rounded border border-white/5">
+<span class="material-symbols-outlined">warning</span>
+<span class="font-body-sm">HazOp 체크리스트</span>
+</div>
+<div class="flex items-center gap-unit-3 p-unit-3 bg-white/10 rounded border border-white/5">
+<span class="material-symbols-outlined">verified_user</span>
+<span class="font-body-sm">최종 안전 검토서</span>
+</div>
+</div>
+<button class="w-full mt-unit-6 bg-white text-primary py-unit-3 rounded font-bold hover:bg-secondary-fixed transition-colors">
+                    필수 서류 확인
+                </button>
+</div>
+<div class="tonal-layer-1 rounded-xl p-unit-6">
+<h4 class="font-headline-sm text-headline-sm text-primary mb-unit-4">다음 단계</h4>
+<div class="relative pl-unit-6 border-l-2 border-outline-variant space-y-unit-6">
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 bg-secondary rounded-full"></div>
+<p class="font-bold text-body-sm text-primary">기술 검토 제출</p>
+<p class="text-label-md text-on-surface-variant">담당 공정 기술 엔지니어 배정</p>
+</div>
+<div class="relative">
+<div class="absolute -left-[33px] top-1 w-4 h-4 bg-surface-variant border-2 border-outline-variant rounded-full"></div>
+<p class="font-bold text-body-sm text-outline">경영진 승인</p>
+<p class="text-label-md text-on-surface-variant">기술적 검토 완료 후 승인 필요</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Legal Basis Section -->
+<div class="col-span-12">
+<h4 class="font-headline-sm text-headline-sm text-primary mb-unit-6">법적 근거 및 규정 매핑</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-unit-6">
+<!-- Legal Card 1 -->
+<div class="tonal-layer-1 p-unit-6 rounded-xl flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-unit-2 mb-unit-4">
+<span class="material-symbols-outlined text-secondary">gavel</span>
+<span class="font-bold text-label-md uppercase text-secondary">OSHA 1910.119(l)</span>
+</div>
+<p class="font-body-md text-primary font-semibold mb-unit-2">변경 관리 (Management of Change)</p>
+<p class="text-body-sm text-on-surface-variant mb-unit-6">고용주는 공정 화학 물질, 기술, 장비 및 절차에 대한 변경 사항을 관리하기 위해 서면 절차를 수립하고 시행해야 합니다.</p>
+</div>
+<button class="text-secondary font-bold text-label-md flex items-center gap-unit-1 hover:underline">
+                        원문 보기 <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+<!-- Legal Card 2 -->
+<div class="tonal-layer-1 p-unit-6 rounded-xl flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-unit-2 mb-unit-4">
+<span class="material-symbols-outlined text-secondary">gavel</span>
+<span class="font-bold text-label-md uppercase text-secondary">PSM Standard 4.2</span>
+</div>
+<p class="font-body-md text-primary font-semibold mb-unit-2">공정 안전 정보 (PSI)</p>
+<p class="text-body-sm text-on-surface-variant mb-unit-6">문서는 변경 후 공정 또는 공정의 관련 부분을 가동하기 전에 업데이트되어야 합니다.</p>
+</div>
+<button class="text-secondary font-bold text-label-md flex items-center gap-unit-1 hover:underline">
+                        원문 보기 <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+<!-- Legal Card 3 -->
+<div class="tonal-layer-1 p-unit-6 rounded-xl flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-unit-2 mb-unit-4">
+<span class="material-symbols-outlined text-secondary">gavel</span>
+<span class="font-bold text-label-md uppercase text-secondary">내부 정책 #SA-01</span>
+</div>
+<p class="font-body-md text-primary font-semibold mb-unit-2">현장 위험성 평가</p>
+<p class="text-body-sm text-on-surface-variant mb-unit-6">기업 방침에 따라 원래 장비 제조업체(OEM) 사양에서 벗어나는 모든 사항은 2등급 MOC가 필요합니다.</p>
+</div>
+<button class="text-secondary font-bold text-label-md flex items-center gap-unit-1 hover:underline">
+                        원문 보기 <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Action Buttons Footer -->
+<div class="col-span-12 flex flex-col sm:flex-row items-center justify-end gap-unit-4 mt-unit-8 pt-unit-8 border-t border-outline-variant">
+<button class="w-full sm:w-auto flex items-center justify-center gap-unit-2 px-unit-8 py-touch-target rounded border border-primary text-primary font-bold hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">edit</span>
+                답변 수정
+            </button>
+<button class="w-full sm:w-auto flex items-center justify-center gap-unit-2 px-unit-8 py-touch-target rounded border border-primary text-primary font-bold hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+                PDF 저장 및 인쇄
+            </button>
+<button class="w-full sm:w-auto flex items-center justify-center gap-unit-2 px-unit-12 py-touch-target rounded bg-secondary text-on-secondary font-bold active:scale-95 transition-all shadow-md">
+                MOC 워크플로우 시작
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Background Decorative Element (Atmospheric) -->
+<div class="fixed top-0 right-0 w-1/3 h-1/2 -z-10 opacity-10 pointer-events-none"></div>
+<script>
+    // Micro-interactions
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('mousedown', () => {
+            button.classList.add('scale-95');
+        });
+        button.addEventListener('mouseup', () => {
+            button.classList.remove('scale-95');
+        });
+    });
+
+    // Search Bar Focus Effect
+    const searchInput = document.querySelector('input[type="text"]');
+    const searchContainer = searchInput.parentElement;
+    searchInput.addEventListener('focus', () => {
+        searchContainer.classList.add('ring-2', 'ring-secondary', 'bg-white');
+        searchContainer.classList.remove('bg-surface-container-low');
+    });
+    searchInput.addEventListener('blur', () => {
+        searchContainer.classList.remove('ring-2', 'ring-secondary', 'bg-white');
+        searchContainer.classList.add('bg-surface-container-low');
+    });
+</script>
+</body></html>

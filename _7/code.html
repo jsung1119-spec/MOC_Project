@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MOC 진행 현황 | PSM AI 어시스턴트</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-container": "#8393bc",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#0039b3",
+                    "secondary": "#0041c9",
+                    "surface-bright": "#f8f9fa",
+                    "primary-container": "#1b2b4e",
+                    "outline-variant": "#c5c6cf",
+                    "on-primary-fixed-variant": "#37466b",
+                    "on-background": "#191c1d",
+                    "on-tertiary-fixed": "#2c1600",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#ffb86f",
+                    "on-primary-fixed": "#081a3d",
+                    "primary-fixed": "#d9e2ff",
+                    "on-error": "#ffffff",
+                    "on-secondary-container": "#e4e7ff",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-tertiary-container": "#d57f00",
+                    "surface-container": "#edeeef",
+                    "on-surface-variant": "#45464e",
+                    "tertiary-container": "#432500",
+                    "on-secondary": "#ffffff",
+                    "background": "#f8f9fa",
+                    "primary-fixed-dim": "#b6c6f1",
+                    "surface-variant": "#e1e3e4",
+                    "error": "#ba1a1a",
+                    "outline": "#75777f",
+                    "surface-dim": "#d9dadb",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#2e3132",
+                    "primary": "#041638",
+                    "on-surface": "#191c1d",
+                    "inverse-primary": "#b6c6f1",
+                    "secondary-container": "#0356ff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#693c00",
+                    "tertiary": "#271300",
+                    "surface": "#f8f9fa",
+                    "secondary-fixed-dim": "#b6c4ff",
+                    "surface-tint": "#4e5e84",
+                    "tertiary-fixed": "#ffdcbd",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#001551",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed": "#dce1ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "unit-6": "24px",
+                    "unit-3": "12px",
+                    "unit-12": "48px",
+                    "touch-target": "48px",
+                    "unit-4": "16px",
+                    "base": "4px",
+                    "unit-16": "64px",
+                    "gutter": "24px",
+                    "unit-8": "32px",
+                    "unit-2": "8px",
+                    "margin-desktop": "32px",
+                    "unit-1": "4px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #F8F9FA;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .spinner-animate {
+        animation: spin 2s linear infinite;
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .pulse-ring {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+      }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col py-unit-6 px-unit-4 z-50">
+<div class="mb-unit-12 px-unit-2">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">PSM AI 어시스턴트</h1>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">공정안전관리</p>
+</div>
+<nav class="flex-1 space-y-unit-1">
+<a class="flex items-center gap-unit-3 py-unit-3 px-unit-4 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">대시보드</span>
+</a>
+<a class="flex items-center gap-unit-3 py-unit-3 px-unit-4 text-secondary font-bold border-r-2 border-secondary bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-body-md text-body-md">MOC 이력</span>
+</a>
+<a class="flex items-center gap-unit-3 py-unit-3 px-unit-4 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-body-md text-body-md">업무지침</span>
+</a>
+<a class="flex items-center gap-unit-3 py-unit-3 px-unit-4 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">설정</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-unit-6 px-unit-2">
+<div class="flex items-center gap-unit-3 mb-unit-6">
+<div class="w-unit-12 h-unit-12 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of a safety officer in high-visibility gear against an industrial background, sharp focus, modern corporate photography style with cool blue and grey tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBS0ZQ8gr8oC16hD-HTsygpgqoI6Zzn3p_iYYmUJ-v5VcYn2RsyTXPld17nt7ENwX6RRMLwsDQC5MnMLXfqDU60DKpMs8v3OQRNsDvrukeNErxg7tSdheuWc_oE6Q3Ng6HEzSWbCCL6K44JpRE_IiJwBPVmo94E_JNAR_NMCUNyWf_alROYPgcFkZxvALqviyz8cJAF51mCoFyM4hs5-UpNt1dRnnfJkroO-6L01pQYSzelF1jcVEiYnQ"/>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold">마커스 첸</p>
+<p class="text-[10px] text-on-surface-variant">선임 안전 엔지니어</p>
+</div>
+</div>
+<button class="w-full h-touch-target bg-primary text-on-primary font-bold rounded-lg flex items-center justify-center gap-unit-2 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+            신규 안전 검토 시작
+        </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[280px] min-h-screen">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-40 bg-surface border-b border-outline-variant flex justify-between items-center h-touch-target px-margin-desktop w-full">
+<div class="flex items-center gap-unit-4 w-1/2">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full h-9 bg-surface-container-low border-none rounded-full pl-unit-12 text-body-sm focus:ring-2 focus:ring-secondary" placeholder="MOC 문서 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-unit-4">
+<button class="p-unit-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-unit-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</div>
+</header>
+<div class="p-margin-desktop max-w-6xl mx-auto">
+<!-- Breadcrumbs & Header -->
+<div class="mb-unit-8">
+<nav class="flex items-center gap-unit-2 text-label-md font-label-md text-on-surface-variant mb-unit-2">
+<a class="hover:text-secondary" href="#">대시보드</a>
+<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+<a class="hover:text-secondary" href="#">MOC 이력</a>
+<span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-on-surface">MOC-2024-0892</span>
+</nav>
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary">반응기 냉각 시스템 개조</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-unit-1">프로젝트 코드: P-9082 • 사업장/시설: 휴스턴 노스 플랜트</p>
+</div>
+<div class="flex gap-unit-3">
+<span class="px-unit-3 py-unit-1 bg-secondary/15 text-secondary font-bold text-label-md rounded-full border border-secondary/20">진행 중</span>
+</div>
+</div>
+</div>
+<!-- Bento Layout Content -->
+<div class="grid grid-cols-12 gap-unit-6">
+<!-- Main Timeline Column -->
+<div class="col-span-12 lg:col-span-8 space-y-unit-6">
+<!-- Progress Card -->
+<div class="bg-white border border-outline-variant p-unit-6 rounded-lg relative overflow-hidden">
+<div class="absolute left-0 top-0 w-1 h-full bg-secondary"></div>
+<div class="flex justify-between items-start mb-unit-8">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-primary">라이프사이클 타임라인</h3>
+<p class="text-body-sm text-on-surface-variant">변경 관리(MOC) 워크플로우 실시간 상태</p>
+</div>
+<div class="text-right">
+<p class="text-label-md text-on-surface-variant">전체 진행률</p>
+<p class="text-headline-sm font-bold text-secondary">68%</p>
+<div class="w-32 h-2 bg-surface-container-high rounded-full mt-unit-1">
+<div class="bg-secondary h-full rounded-full w-[68%]"></div>
+</div>
+</div>
+</div>
+<!-- Timeline Container -->
+<div class="relative pl-unit-8 space-y-unit-12">
+<!-- Vertical Line -->
+<div class="absolute left-[15px] top-4 bottom-4 w-[2px] bg-outline-variant"></div>
+<!-- Step 1: Done -->
+<div class="relative flex items-start gap-unit-6">
+<div class="absolute -left-[33px] mt-1 w-8 h-8 bg-on-secondary rounded-full border-2 border-secondary flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-secondary text-[20px]" data-icon="check" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<div class="flex-1 pb-unit-6 border-b border-outline-variant/50">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant">대상 판단</h4>
+<div class="flex items-center gap-unit-3 mt-unit-1">
+<div class="flex items-center gap-unit-1 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="person">person</span>
+                                                사라 젠킨스 (공장장)
+                                            </div>
+<div class="flex items-center gap-unit-1 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span>
+                                                2023년 10월 12일 • 오전 09:15
+                                            </div>
+</div>
+</div>
+<span class="px-unit-2 py-0.5 bg-outline-variant/20 text-on-surface-variant text-[10px] font-bold rounded">보관됨</span>
+</div>
+</div>
+</div>
+<!-- Step 2: Done -->
+<div class="relative flex items-start gap-unit-6">
+<div class="absolute -left-[33px] mt-1 w-8 h-8 bg-on-secondary rounded-full border-2 border-secondary flex items-center justify-center z-10">
+<span class="material-symbols-outlined text-secondary text-[20px]" data-icon="check" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<div class="flex-1 pb-unit-6 border-b border-outline-variant/50">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant">초안 작성</h4>
+<div class="flex items-center gap-unit-3 mt-unit-1">
+<div class="flex items-center gap-unit-1 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="person">person</span>
+                                                마커스 첸 (담당자)
+                                            </div>
+<div class="flex items-center gap-unit-1 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="schedule">schedule</span>
+                                                2023년 10월 15일 • 오후 02:40
+                                            </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 3: ACTIVE -->
+<div class="relative flex items-start gap-unit-6 bg-surface-container-low -mx-unit-6 px-unit-6 py-unit-4 rounded-xl ring-2 ring-secondary/20">
+<div class="absolute -left-[9px] mt-2 w-8 h-8 bg-secondary rounded-full border-4 border-on-secondary flex items-center justify-center z-10 pulse-ring">
+<span class="material-symbols-outlined text-white text-[20px] spinner-animate" data-icon="sync">sync</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-primary flex items-center gap-unit-2">
+                                            검토 요청
+                                            <span class="px-unit-2 py-0.5 bg-secondary text-white text-[10px] font-bold rounded">현재 단계</span>
+</h4>
+<div class="flex items-center gap-unit-3 mt-unit-1">
+<div class="flex items-center gap-unit-1 text-label-md text-primary font-bold">
+<span class="material-symbols-outlined text-[16px]" data-icon="person">person</span>
+                                                대기 중: 엔지니어링 패널
+                                            </div>
+<div class="flex items-center gap-unit-1 text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="update">update</span>
+                                                시작일: 2023년 10월 18일
+                                            </div>
+</div>
+</div>
+<button class="h-touch-target px-unit-6 bg-secondary-container text-on-secondary font-bold rounded-lg flex items-center justify-center gap-unit-2 active:scale-95 transition-all shadow-lg shadow-secondary/20 hover:bg-secondary">
+                                        작업 계속하기
+                                        <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Embedded action details -->
+<div class="mt-unit-4 p-unit-3 bg-white border border-secondary/20 rounded-lg flex items-center gap-unit-4">
+<div class="w-12 h-12 bg-secondary/10 flex items-center justify-center rounded">
+<span class="material-symbols-outlined text-secondary" data-icon="assignment">assignment</span>
+</div>
+<div>
+<p class="text-body-sm font-bold text-primary">기술 검토 필요</p>
+<p class="text-label-md text-on-surface-variant">전기 엔지니어링 부서의 보완 요청 사항 3건에 대한 해결이 필요합니다.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 4: Pending -->
+<div class="relative flex items-start gap-unit-6 opacity-50">
+<div class="absolute -left-[33px] mt-1 w-8 h-8 bg-surface-container-high rounded-full border-2 border-outline flex items-center justify-center z-10">
+<div class="w-2 h-2 bg-outline rounded-full"></div>
+</div>
+<div class="flex-1 pb-unit-6 border-b border-outline-variant/50">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant">승인</h4>
+<p class="text-label-md text-on-surface-variant mt-unit-1">공장 안전 위원회 일정 예정</p>
+</div>
+</div>
+<!-- Step 5: Pending -->
+<div class="relative flex items-start gap-unit-6 opacity-50">
+<div class="absolute -left-[33px] mt-1 w-8 h-8 bg-surface-container-high rounded-full border-2 border-outline flex items-center justify-center z-10">
+<div class="w-2 h-2 bg-outline rounded-full"></div>
+</div>
+<div class="flex-1 pb-unit-6 border-b border-outline-variant/50">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant">실행</h4>
+<p class="text-label-md text-on-surface-variant mt-unit-1">승인된 작업 허가서(ePTW) 필요</p>
+</div>
+</div>
+<!-- Step 6: Pending -->
+<div class="relative flex items-start gap-unit-6 opacity-50">
+<div class="absolute -left-[33px] mt-1 w-8 h-8 bg-surface-container-high rounded-full border-2 border-outline flex items-center justify-center z-10">
+<div class="w-2 h-2 bg-outline rounded-full"></div>
+</div>
+<div class="flex-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant">완료</h4>
+<p class="text-label-md text-on-surface-variant mt-unit-1">최종 서명 및 문서 보관</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Sidebar Contextual Cards -->
+<div class="col-span-12 lg:col-span-4 space-y-unit-6">
+<!-- Project Stats Card -->
+<div class="bg-white border border-outline-variant p-unit-6 rounded-lg">
+<h3 class="font-label-md text-label-md font-bold text-on-surface-variant mb-unit-4 uppercase tracking-wider">이해관계자</h3>
+<div class="space-y-unit-4">
+<div class="flex items-center gap-unit-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="Close-up headshot of a mature female engineer with glasses, working in an office environment with engineering blueprints blurred in the background, sharp detail, neutral palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE5KlEHZOE_eaVGlS28DjgsOxhYcqobCgZ53UJbV_NwsjuF1uADX_WJ6HUii5LrjvliL_WFU3nnAJWwhEfX7txUxn121qvzsBuVdqyoeZHzwjR16e8fI2FjgmRNLi1M4ZEJL1bYiPxUZO1Y5KOhPVBm6QUrYS-cctoYVDHlOIbCwhY2xDwEFhQUSl1OklWa2wkVCASEmkyIdPOqeizmcjapbMd80kzImJ-zp5I-utCq_dph_CqR_fqDA"/>
+</div>
+<div>
+<p class="text-body-sm font-bold">사라 젠킨스</p>
+<p class="text-[11px] text-on-surface-variant">공정 관리자</p>
+</div>
+<span class="ml-auto material-symbols-outlined text-secondary" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<div class="flex items-center gap-unit-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male safety inspector wearing a protective helmet and safety glasses, smiling confidently, realistic industrial lighting, high-end professional photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd3X1vOWEMN0lVnQsxOXNtHMUXmI5txTH2y6UXzxPrTLPRdoLZaCiRG7uvv-EgAT5benbez2fkk0l55qX64YNtIwZDKrHs1G7akbHRWEdjQm5QjWp3uS7QS5W0p0sEvQI90kw3yuVK_wA3MolQsu85VO7UX4YbJEjVe7yFvz-qQ6NqUmXdgshmQ0OajwIcaWjYvy4lWiAgmf12WnOAY22IC4yfpTLZxNHjsl0oyUQ64f-LCX2a_dxfZQ"/>
+</div>
+<div>
+<p class="text-body-sm font-bold">케빈 오르테가</p>
+<p class="text-[11px] text-on-surface-variant">HSE 전문가</p>
+</div>
+<span class="ml-auto material-symbols-outlined text-outline" data-icon="pending">pending</span>
+</div>
+<div class="flex items-center gap-unit-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="Portrait of a young diverse female technician holding a digital tablet, focused look, wearing factory uniform, high-contrast industrial interior lighting, cinematic style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDR6EyWihkB51csc2wem_wUCzEnKSKNSbaVG4mj9ROe1BwDMXRkFrcw-5b2dSFITpY6XjaokdoASNBw2VnITWejto3KDl5D3txw8aH4AuUTIkRgDMv0L8BW4_OA-x9631eODPHTNF_RcLYw_2wXti8BBzHeOwh9w8OtjRdcqsOAgQhZ4tzXm-EJxUDc2Y-TNx0KLehLMIsqdTtD8JLPQQZbJPEeO3_JjMICeaFgMA-HWT-3aqWX7xulIg"/>
+</div>
+<div>
+<p class="text-body-sm font-bold">리나 박</p>
+<p class="text-[11px] text-on-surface-variant">운영 리드</p>
+</div>
+<span class="ml-auto material-symbols-outlined text-outline" data-icon="schedule">schedule</span>
+</div>
+</div>
+<button class="w-full mt-unit-6 py-unit-2 text-label-md font-bold text-secondary border border-secondary rounded hover:bg-secondary/5 transition-all">
+                        권한 관리
+                    </button>
+</div>
+<!-- Risk Indicator Card -->
+<div class="bg-primary text-on-primary p-unit-6 rounded-lg relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex items-center gap-unit-2 mb-unit-4">
+<span class="material-symbols-outlined text-tertiary-fixed-dim" data-icon="warning">warning</span>
+<h3 class="font-label-md text-label-md font-bold uppercase tracking-wider">핵심 위험 체크</h3>
+</div>
+<p class="text-headline-sm font-bold mb-unit-2">중간 우선순위</p>
+<p class="text-body-sm opacity-80 mb-unit-6">해당 개조 작업에는 압력 용기 배관이 포함됩니다. 실행 단계 전 전문 감사가 필요합니다.</p>
+<div class="bg-white/10 p-unit-3 rounded border border-white/20">
+<p class="text-label-md font-bold">권장 AI 조치:</p>
+<p class="text-[11px] opacity-90 mt-unit-1 italic">"실행 단계 중에 ASME Section VIII 검사 일정을 잡으십시오."</p>
+</div>
+</div>
+<!-- Abstract Background Decoration -->
+<div class="absolute -right-4 -bottom-4 opacity-10">
+<span class="material-symbols-outlined text-[120px]" data-icon="security" style="font-variation-settings: 'wght' 200;">security</span>
+</div>
+</div>
+<!-- Quick Logs -->
+<div class="bg-white border border-outline-variant p-unit-6 rounded-lg">
+<h3 class="font-label-md text-label-md font-bold text-on-surface-variant mb-unit-4 uppercase tracking-wider">감사 로그</h3>
+<div class="space-y-unit-4">
+<div class="flex gap-unit-3">
+<div class="w-unit-1 h-unit-8 bg-success rounded-full"></div>
+<div>
+<p class="text-[11px] font-bold">문서 업로드 완료</p>
+<p class="text-[10px] text-on-surface-variant">마커스 첸 • 2시간 전</p>
+</div>
+</div>
+<div class="flex gap-unit-3">
+<div class="w-unit-1 h-unit-8 bg-secondary rounded-full"></div>
+<div>
+<p class="text-[11px] font-bold">상태 변경: 검토</p>
+<p class="text-[10px] text-on-surface-variant">시스템 • 4시간 전</p>
+</div>
+</div>
+<div class="flex gap-unit-3">
+<div class="w-unit-1 h-unit-8 bg-error rounded-full"></div>
+<div>
+<p class="text-[11px] font-bold">플래그된 코멘트</p>
+<p class="text-[10px] text-on-surface-variant">케빈 오르테가 • 1일 전</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB -->
+<button class="fixed bottom-unit-8 right-unit-8 w-14 h-14 bg-secondary text-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-all z-50 hover:bg-secondary-container">
+<span class="material-symbols-outlined" data-icon="add_comment">add_comment</span>
+</button>
+<script>
+    // Simple Interaction logic
+    document.querySelectorAll('button, a').forEach(el => {
+        el.addEventListener('click', function(e) {
+            if(this.tagName === 'A') e.preventDefault();
+            console.log('Interacted with:', this.innerText || 'Icon Button');
+        });
+    });
+</script>
+</body></html>

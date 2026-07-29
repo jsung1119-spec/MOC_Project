@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI 질문 위저드 | PSM 어시스턴트</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .5; transform: scale(1.1); }
+        }
+        .wizard-card-enter {
+            animation: slide-up 0.4s ease-out forwards;
+        }
+        @keyframes slide-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary-container": "#8393bc",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#0039b3",
+                        "secondary": "#0041c9",
+                        "surface-bright": "#f8f9fa",
+                        "primary-container": "#1b2b4e",
+                        "outline-variant": "#c5c6cf",
+                        "on-primary-fixed-variant": "#37466b",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb86f",
+                        "on-primary-fixed": "#081a3d",
+                        "primary-fixed": "#d9e2ff",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#e4e7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-tertiary-container": "#d57f00",
+                        "surface-container": "#edeeef",
+                        "on-surface-variant": "#45464e",
+                        "tertiary-container": "#432500",
+                        "on-secondary": "#ffffff",
+                        "background": "#f8f9fa",
+                        "primary-fixed-dim": "#b6c6f1",
+                        "surface-variant": "#e1e3e4",
+                        "error": "#ba1a1a",
+                        "outline": "#75777f",
+                        "surface-dim": "#d9dadb",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3132",
+                        "primary": "#041638",
+                        "on-surface": "#191c1d",
+                        "inverse-primary": "#b6c6f1",
+                        "secondary-container": "#0356ff",
+                        "surface-container-low": "#f3f4f5",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "tertiary": "#271300",
+                        "surface": "#f8f9fa",
+                        "secondary-fixed-dim": "#b6c4ff",
+                        "surface-tint": "#4e5e84",
+                        "tertiary-fixed": "#ffdcbd",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#001551",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#dce1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "unit-6": "24px",
+                        "unit-3": "12px",
+                        "unit-12": "48px",
+                        "touch-target": "48px",
+                        "unit-4": "16px",
+                        "base": "4px",
+                        "unit-16": "64px",
+                        "gutter": "24px",
+                        "unit-8": "32px",
+                        "unit-2": "8px",
+                        "margin-desktop": "32px",
+                        "unit-1": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-xl": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden">
+<!-- Sidebar Integration -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col py-unit-6 px-unit-4 z-50">
+<div class="mb-unit-8">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">PSM AI 어시스턴트</h1>
+<p class="text-on-surface-variant font-label-md text-label-md">안전 관리 시스템</p>
+</div>
+<nav class="flex-1 space-y-unit-2">
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant group" href="#">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="font-body-md">대시보드</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors text-secondary font-bold border-r-2 border-secondary bg-surface-container-low" href="#">
+<span class="material-symbols-outlined text-[24px]">assignment_turned_in</span>
+<span class="font-body-md">MOC 이력</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant group" href="#">
+<span class="material-symbols-outlined text-[24px]">description</span>
+<span class="font-body-md">가이드라인</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded transition-colors hover:bg-surface-container-low text-on-surface-variant group" href="#">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+<span class="font-body-md">설정</span>
+</a>
+</nav>
+<div class="mt-auto pt-unit-6 border-t border-outline-variant">
+<div class="flex items-center gap-unit-3">
+<div class="w-unit-12 h-unit-12 rounded-full overflow-hidden bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div>
+<p class="font-label-md font-bold text-on-surface">J. 밀러</p>
+<p class="text-[10px] uppercase tracking-wider text-on-surface-variant">안전 관리자</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Header Integration -->
+<header class="flex justify-between items-center h-touch-target px-margin-desktop w-full ml-[280px] fixed top-0 bg-surface z-40 border-b border-outline-variant">
+<div class="flex items-center gap-unit-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-unit-12 pr-unit-4 py-unit-2 text-label-md focus:ring-2 focus:ring-secondary" placeholder="안전 절차 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-unit-4">
+<button class="w-touch-target h-touch-target flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="w-touch-target h-touch-target flex items-center justify-center hover:bg-surface-container-high rounded-full transition-all">
+<span class="material-symbols-outlined text-on-surface-variant">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-[280px] pt-[48px] h-screen flex flex-col bg-background relative overflow-hidden">
+<!-- Stepper Progress Bar -->
+<div class="w-full bg-surface py-unit-8 px-margin-desktop border-b border-outline-variant relative z-10">
+<div class="max-w-4xl mx-auto">
+<div class="flex items-center justify-between mb-unit-4">
+<span class="font-label-md text-secondary font-bold uppercase tracking-widest">공정 안전 검토</span>
+<span class="font-label-md text-on-surface-variant font-bold">3 / 8 단계</span>
+</div>
+<!-- Progress Track -->
+<div class="relative h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-secondary transition-all duration-700 ease-in-out" style="width: 37.5%;"></div>
+</div>
+<!-- Step Nodes -->
+<div class="flex justify-between mt-unit-4 relative">
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-white" style="font-variation-settings: 'wght' 700">check</span>
+</div>
+<span class="text-[10px] mt-unit-1 font-bold text-secondary">시작</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-white" style="font-variation-settings: 'wght' 700">check</span>
+</div>
+<span class="text-[10px] mt-unit-1 font-bold text-secondary">분석</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-secondary ring-4 ring-secondary/20 step-pulse"></div>
+<span class="text-[10px] mt-unit-1 font-bold text-secondary">사양</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-surface-container-highest"></div>
+<span class="text-[10px] mt-unit-1 font-medium text-on-surface-variant">위험</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-surface-container-highest"></div>
+<span class="text-[10px] mt-unit-1 font-medium text-on-surface-variant">안전</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-surface-container-highest"></div>
+<span class="text-[10px] mt-unit-1 font-medium text-on-surface-variant">검토</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-surface-container-highest"></div>
+<span class="text-[10px] mt-unit-1 font-medium text-on-surface-variant">서명</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 rounded-full bg-surface-container-highest"></div>
+<span class="text-[10px] mt-unit-1 font-medium text-on-surface-variant">완료</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Question Section -->
+<section class="flex-1 overflow-y-auto px-margin-desktop py-unit-12 z-10">
+<div class="max-w-4xl mx-auto wizard-card-enter">
+<!-- Main Question Card -->
+<div class="bg-surface border-l-[6px] border-l-secondary rounded-xl p-unit-8 mb-unit-8 shadow-sm">
+<h2 class="font-headline-lg text-headline-lg text-primary mb-unit-4 leading-tight">
+                        설비 사양이 기존 것과 동일합니까?
+                    </h2>
+<div class="flex items-start gap-unit-3 p-unit-4 bg-surface-container-low rounded">
+<span class="material-symbols-outlined text-secondary">info</span>
+<p class="font-body-md text-on-surface-variant">
+                            용량, 재질 또는 설계 압력에 변경 사항이 있는 경우 <span class="font-bold text-on-surface">아니오</span>를 선택하십시오. 
+                            동일 규격 교체(Replacement in Kind)는 특정 MOC 정밀 검토 절차를 면제받을 수 있습니다.
+                        </p>
+</div>
+</div>
+<!-- Answer Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit-4">
+<button class="answer-btn group flex items-center justify-between p-unit-6 bg-surface border border-outline-variant rounded-xl hover:border-secondary hover:bg-surface-container-low transition-all text-left" onclick="selectAnswer(this)">
+<div class="flex items-center gap-unit-4">
+<div class="w-unit-12 h-unit-12 rounded bg-green-50 flex items-center justify-center text-green-700 transition-colors group-hover:bg-green-100">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'wght' 700">check_circle</span>
+</div>
+<div>
+<span class="font-headline-sm block">예</span>
+<span class="text-body-sm text-on-surface-variant">동일 규격 교체</span>
+</div>
+</div>
+<div class="radio-indicator w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center group-hover:border-secondary">
+<div class="w-3 h-3 rounded-full bg-secondary scale-0 transition-transform duration-200"></div>
+</div>
+</button>
+<button class="answer-btn group flex items-center justify-between p-unit-6 bg-surface border border-outline-variant rounded-xl hover:border-secondary hover:bg-surface-container-low transition-all text-left" onclick="selectAnswer(this)">
+<div class="flex items-center gap-unit-4">
+<div class="w-unit-12 h-unit-12 rounded bg-red-50 flex items-center justify-center text-red-700 transition-colors group-hover:bg-red-100">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'wght' 700">cancel</span>
+</div>
+<div>
+<span class="font-headline-sm block">아니오</span>
+<span class="text-body-sm text-on-surface-variant">사양 또는 설계 변경됨</span>
+</div>
+</div>
+<div class="radio-indicator w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center group-hover:border-secondary">
+<div class="w-3 h-3 rounded-full bg-secondary scale-0 transition-transform duration-200"></div>
+</div>
+</button>
+<button class="answer-btn group flex items-center justify-between p-unit-6 bg-surface border border-outline-variant rounded-xl hover:border-secondary hover:bg-surface-container-low transition-all text-left" onclick="selectAnswer(this)">
+<div class="flex items-center gap-unit-4">
+<div class="w-unit-12 h-unit-12 rounded bg-orange-50 flex items-center justify-center text-orange-700 transition-colors group-hover:bg-orange-100">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'wght' 700">help</span>
+</div>
+<div>
+<span class="font-headline-sm block">잘 모르겠음</span>
+<span class="text-body-sm text-on-surface-variant">기술적 검토 요청</span>
+</div>
+</div>
+<div class="radio-indicator w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center group-hover:border-secondary">
+<div class="w-3 h-3 rounded-full bg-secondary scale-0 transition-transform duration-200"></div>
+</div>
+</button>
+<button class="answer-btn group flex items-center justify-between p-unit-6 bg-surface border border-outline-variant rounded-xl hover:border-secondary hover:bg-surface-container-low transition-all text-left" onclick="selectAnswer(this)">
+<div class="flex items-center gap-unit-4">
+<div class="w-unit-12 h-unit-12 rounded bg-slate-100 flex items-center justify-center text-slate-600 transition-colors group-hover:bg-slate-200">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'wght' 700">block</span>
+</div>
+<div>
+<span class="font-headline-sm block">해당 없음</span>
+<span class="text-body-sm text-on-surface-variant">이 단계에 적용되지 않음</span>
+</div>
+</div>
+<div class="radio-indicator w-6 h-6 rounded-full border-2 border-outline-variant flex items-center justify-center group-hover:border-secondary">
+<div class="w-3 h-3 rounded-full bg-secondary scale-0 transition-transform duration-200"></div>
+</div>
+</button>
+</div>
+</div>
+</section>
+<!-- Footer Actions -->
+<footer class="w-full bg-surface border-t border-outline-variant p-unit-6 px-margin-desktop z-10">
+<div class="max-w-4xl mx-auto flex items-center justify-between">
+<div>
+<button class="px-unit-6 h-touch-target flex items-center gap-unit-2 text-on-surface-variant hover:bg-surface-container-low rounded transition-all font-bold">
+<span class="material-symbols-outlined">arrow_back</span>
+<span>이전</span>
+</button>
+</div>
+<div class="flex items-center gap-unit-4">
+<button class="px-unit-6 h-touch-target text-secondary font-bold hover:bg-secondary/5 rounded transition-all">
+                        임시 저장
+                    </button>
+<button class="px-unit-8 h-touch-target bg-outline-variant text-on-surface/30 cursor-not-allowed rounded font-bold flex items-center gap-unit-2 transition-all" disabled="" id="nextBtn">
+<span>다음 질문</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</footer>
+</main>
+<script>
+        let selectedElement = null;
+
+        function selectAnswer(el) {
+            // Remove selection from previous
+            if (selectedElement) {
+                selectedElement.classList.remove('border-secondary', 'bg-surface-container-low', 'ring-2', 'ring-secondary/10');
+                selectedElement.querySelector('.radio-indicator').classList.remove('border-secondary');
+                selectedElement.querySelector('.radio-indicator div').classList.add('scale-0');
+            }
+
+            // Apply selection to new
+            selectedElement = el;
+            el.classList.add('border-secondary', 'bg-surface-container-low', 'ring-2', 'ring-secondary/10');
+            el.querySelector('.radio-indicator').classList.add('border-secondary');
+            el.querySelector('.radio-indicator div').classList.remove('scale-0');
+
+            // Enable Next Button
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('bg-outline-variant', 'text-on-surface/30', 'cursor-not-allowed');
+            nextBtn.classList.add('bg-secondary', 'text-white', 'hover:bg-secondary-container', 'shadow-lg', 'active:scale-[0.98]');
+            
+            // Interaction Feedback
+            el.classList.add('scale-[0.99]');
+            setTimeout(() => el.classList.remove('scale-[0.99]'), 150);
+        }
+
+        // Mock Next functionality
+        document.getElementById('nextBtn').addEventListener('click', function() {
+            if(!this.disabled) {
+                alert('4단계로 진행합니다: 환경 영향 평가');
+            }
+        });
+    </script>
+</body></html>

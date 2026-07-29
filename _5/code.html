@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PSM AI Assistant - 대시보드</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-container": "#8393bc",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#0039b3",
+                    "secondary": "#0041c9",
+                    "surface-bright": "#f8f9fa",
+                    "primary-container": "#1b2b4e",
+                    "outline-variant": "#c5c6cf",
+                    "on-primary-fixed-variant": "#37466b",
+                    "on-background": "#191c1d",
+                    "on-tertiary-fixed": "#2c1600",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#ffb86f",
+                    "on-primary-fixed": "#081a3d",
+                    "primary-fixed": "#d9e2ff",
+                    "on-error": "#ffffff",
+                    "on-secondary-container": "#e4e7ff",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-tertiary-container": "#d57f00",
+                    "surface-container": "#edeeef",
+                    "on-surface-variant": "#45464e",
+                    "tertiary-container": "#432500",
+                    "on-secondary": "#ffffff",
+                    "background": "#f8f9fa",
+                    "primary-fixed-dim": "#b6c6f1",
+                    "surface-variant": "#e1e3e4",
+                    "error": "#ba1a1a",
+                    "outline": "#75777f",
+                    "surface-dim": "#d9dadb",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#2e3132",
+                    "primary": "#041638",
+                    "on-surface": "#191c1d",
+                    "inverse-primary": "#b6c6f1",
+                    "secondary-container": "#0356ff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#693c00",
+                    "tertiary": "#271300",
+                    "surface": "#f8f9fa",
+                    "secondary-fixed-dim": "#b6c4ff",
+                    "surface-tint": "#4e5e84",
+                    "tertiary-fixed": "#ffdcbd",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#001551",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed": "#dce1ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "unit-6": "24px",
+                    "unit-3": "12px",
+                    "unit-12": "48px",
+                    "touch-target": "48px",
+                    "unit-4": "16px",
+                    "base": "4px",
+                    "unit-16": "64px",
+                    "gutter": "24px",
+                    "unit-8": "32px",
+                    "unit-2": "8px",
+                    "margin-desktop": "32px",
+                    "unit-1": "4px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        /* Custom scrollbar for dense data */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c5c6cf; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] bg-surface border-r border-outline-variant flex flex-col py-unit-6 px-unit-4 z-50">
+<div class="mb-unit-8 flex items-center gap-unit-3 px-unit-2">
+<div class="w-10 h-10 bg-primary-container rounded flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">PSM AI Assistant</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">안전 관리 시스템</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-unit-3 px-unit-4 py-unit-3 text-secondary font-bold border-r-2 border-secondary hover:bg-surface-container-low transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">대시보드</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-4 py-unit-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">MOC 이력</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-4 py-unit-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">가이드라인</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-4 py-unit-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">설정</span>
+</a>
+</nav>
+<div class="mt-auto pt-unit-6 border-t border-outline-variant">
+<div class="flex items-center gap-unit-3 px-unit-2">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high">
+<img class="w-full h-full object-cover" data-alt="A professional safety officer headshot with a neutral expression, wearing clean industrial safety gear and a hard hat in a softly blurred industrial control room environment. The lighting is bright and corporate, emphasizing reliability and professional expertise in a modern safety management context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLtn2tD9iI_-Tu6u-PnQqGLvEYcifCDVvhIAA8vOfkh4mxSXRzIdTVEqliT-T4h4p_u_0ufbIRKkmCNaPzsWOl_NMxSiD4lY1LXg5B6bdCYkE9CfJbxqynGwLnzhAt2peccZ6_c78nHBkUwrnEbn2JSex9f5HFRuEPynpzaKQdjk1IZIxjryIpw-CXX2EYaK_AJaJyzSMuuSwpaPUrfrtOpKeVxStSQhFXe1rt9fY6s1f5-wwxJdSCaA"/>
+</div>
+<div class="overflow-hidden">
+<p class="font-label-md text-label-md font-bold truncate">Mark Sterling</p>
+<p class="text-xs text-on-surface-variant truncate">수석 안전 엔지니어</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="flex justify-between items-center h-touch-target px-margin-desktop w-full ml-[280px] width-[calc(100%-280px)] bg-surface sticky top-0 z-40 border-b border-outline-variant">
+<div class="flex-1 max-w-xl">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-unit-3 text-outline">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-lg pl-unit-12 pr-unit-4 h-10 focus:ring-2 focus:ring-secondary text-sm" placeholder="안전 검토, MOC 또는 가이드라인 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-unit-4">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-full transition-all duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-full transition-all duration-200">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[280px] p-unit-8 min-h-[calc(100vh-48px)]">
+<!-- Welcome Header -->
+<div class="flex justify-between items-end mb-unit-8">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary">안전 개요</h2>
+<p class="text-on-surface-variant font-body-md text-body-md mt-unit-1">실시간 공정 안전 관리 상태 및 위험성 평가.</p>
+</div>
+<div class="text-right">
+<p class="font-label-md text-label-md text-outline uppercase tracking-wider">시스템 상태</p>
+<div class="flex items-center gap-unit-2 text-success-600">
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="font-bold text-sm text-green-700">모든 노드 정상 작동 중</span>
+</div>
+</div>
+</div>
+<!-- Stats Section -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-unit-4 mb-unit-12">
+<!-- Urgent Card -->
+<div class="bg-white p-unit-6 rounded-lg border border-outline-variant border-l-[4px] border-l-error">
+<div class="flex justify-between items-start mb-unit-4">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-xs font-bold text-error bg-red-50 px-unit-2 py-unit-1 rounded uppercase">조치 필요</span>
+</div>
+<p class="text-headline-xl font-headline-xl text-primary">1</p>
+<p class="font-body-md text-body-md text-on-surface-variant">긴급 위험</p>
+</div>
+<!-- Ongoing Card -->
+<div class="bg-white p-unit-6 rounded-lg border border-outline-variant border-l-[4px] border-l-secondary">
+<div class="flex justify-between items-start mb-unit-4">
+<span class="material-symbols-outlined text-secondary">pending_actions</span>
+<span class="text-xs font-bold text-secondary bg-blue-50 px-unit-2 py-unit-1 rounded uppercase">활성</span>
+</div>
+<p class="text-headline-xl font-headline-xl text-primary">4</p>
+<p class="font-body-md text-body-md text-on-surface-variant">진행 중인 검토</p>
+</div>
+<!-- Completed Card -->
+<div class="bg-white p-unit-6 rounded-lg border border-outline-variant border-l-[4px] border-l-green-500">
+<div class="flex justify-between items-start mb-unit-4">
+<span class="material-symbols-outlined text-green-600">check_circle</span>
+<span class="text-xs font-bold text-green-600 bg-green-50 px-unit-2 py-unit-1 rounded uppercase">성공</span>
+</div>
+<p class="text-headline-xl font-headline-xl text-primary">12</p>
+<p class="font-body-md text-body-md text-on-surface-variant">이번 달 완료됨</p>
+</div>
+<!-- Pending Card -->
+<div class="bg-white p-unit-6 rounded-lg border border-outline-variant border-l-[4px] border-l-orange-500">
+<div class="flex justify-between items-start mb-unit-4">
+<span class="material-symbols-outlined text-orange-500">schedule</span>
+<span class="text-xs font-bold text-orange-600 bg-orange-50 px-unit-2 py-unit-1 rounded uppercase">대기 중</span>
+</div>
+<p class="text-headline-xl font-headline-xl text-primary">2</p>
+<p class="font-body-md text-body-md text-on-surface-variant">승인 대기 중</p>
+</div>
+</section>
+<!-- Center CTA Area -->
+<section class="flex flex-col items-center justify-center py-unit-16 bg-primary-container rounded-xl mb-unit-12 relative overflow-hidden group">
+<!-- Atmospheric BG Effect -->
+<div class="absolute inset-0 opacity-10 pointer-events-none">
+<div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-secondary via-transparent to-transparent"></div>
+</div>
+<div class="relative z-10 text-center px-unit-6">
+<h3 class="font-headline-lg text-headline-lg text-white mb-unit-4">신규 안전 검토 시작</h3>
+<p class="text-on-primary-container max-w-xl mx-auto mb-unit-8 font-body-md text-body-md">AI 비서가 복잡한 MOC 프로토콜을 안내하여 OSHA 및 사내 안전 표준을 준수하도록 돕습니다.</p>
+<button class="h-unit-12 px-unit-8 bg-secondary-container text-white font-bold rounded-lg hover:bg-secondary transition-all transform hover:scale-105 active:scale-95 flex items-center gap-unit-3 mx-auto shadow-lg shadow-black/20">
+<span class="material-symbols-outlined">add_moderator</span>
+                    신규 안전 검토
+                </button>
+</div>
+</section>
+<!-- Recent Activities Table Section -->
+<section class="bg-white rounded-lg border border-outline-variant overflow-hidden">
+<div class="px-unit-6 py-unit-4 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-sm text-headline-sm text-primary">최근 MOC 활동</h3>
+<button class="text-secondary font-bold text-sm hover:underline">전체 이력 보기</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant uppercase text-[11px] font-bold tracking-widest">
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant">작업명</th>
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant">유형</th>
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant">등급</th>
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant">상태</th>
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant">기한</th>
+<th class="px-unit-6 py-unit-4 border-b border-outline-variant text-right">작업</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-unit-6 py-unit-4">
+<div class="font-bold text-primary">밸브 교체 - 반응기 04</div>
+<div class="text-xs text-on-surface-variant">ID: MOC-2023-882</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="bg-surface-container-high text-primary px-unit-2 py-0.5 rounded text-xs font-medium">기계</span>
+</td>
+<td class="px-unit-6 py-unit-4">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="text-sm">등급 1</span>
+</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="px-unit-3 py-1 rounded-full text-xs font-bold bg-error/15 text-error">긴급</span>
+</td>
+<td class="px-unit-6 py-unit-4 text-sm text-on-surface-variant">2023년 10월 24일</td>
+<td class="px-unit-6 py-unit-4 text-right">
+<button class="px-unit-4 py-unit-2 border border-secondary text-secondary rounded font-bold text-xs hover:bg-secondary hover:text-white transition-colors duration-200">계속하기</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-unit-6 py-unit-4">
+<div class="font-bold text-primary">센서 어레이 교정</div>
+<div class="text-xs text-on-surface-variant">ID: MOC-2023-891</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="bg-surface-container-high text-primary px-unit-2 py-0.5 rounded text-xs font-medium">전기</span>
+</td>
+<td class="px-unit-6 py-unit-4">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-orange-500"></span>
+<span class="text-sm">등급 2</span>
+</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="px-unit-3 py-1 rounded-full text-xs font-bold bg-secondary/15 text-secondary">진행 중</span>
+</td>
+<td class="px-unit-6 py-unit-4 text-sm text-on-surface-variant">2023년 10월 28일</td>
+<td class="px-unit-6 py-unit-4 text-right">
+<button class="px-unit-4 py-unit-2 border border-secondary text-secondary rounded font-bold text-xs hover:bg-secondary hover:text-white transition-colors duration-200">계속하기</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-unit-6 py-unit-4">
+<div class="font-bold text-primary">압력 바이패스 프로토콜</div>
+<div class="text-xs text-on-surface-variant">ID: MOC-2023-904</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="bg-surface-container-high text-primary px-unit-2 py-0.5 rounded text-xs font-medium">운전</span>
+</td>
+<td class="px-unit-6 py-unit-4">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-orange-500"></span>
+<span class="text-sm">등급 2</span>
+</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="px-unit-3 py-1 rounded-full text-xs font-bold bg-orange-500/15 text-orange-600">대기 중</span>
+</td>
+<td class="px-unit-6 py-unit-4 text-sm text-on-surface-variant">2023년 11월 02일</td>
+<td class="px-unit-6 py-unit-4 text-right">
+<button class="px-unit-4 py-unit-2 border border-secondary text-secondary rounded font-bold text-xs hover:bg-secondary hover:text-white transition-colors duration-200">계속하기</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-unit-6 py-unit-4">
+<div class="font-bold text-primary">HVAC 필터 업데이트 - 사이트 B</div>
+<div class="text-xs text-on-surface-variant">ID: MOC-2023-912</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="bg-surface-container-high text-primary px-unit-2 py-0.5 rounded text-xs font-medium">기계</span>
+</td>
+<td class="px-unit-6 py-unit-4">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+<span class="text-sm">등급 2</span>
+</div>
+</td>
+<td class="px-unit-6 py-unit-4">
+<span class="px-unit-3 py-1 rounded-full text-xs font-bold bg-green-500/15 text-green-600">완료됨</span>
+</td>
+<td class="px-unit-6 py-unit-4 text-sm text-on-surface-variant">2023년 10월 18일</td>
+<td class="px-unit-6 py-unit-4 text-right">
+<button class="px-unit-4 py-unit-2 border border-outline-variant text-outline rounded font-bold text-xs cursor-not-allowed">검토</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-unit-6 py-unit-4 bg-surface-container-low flex items-center justify-between">
+<span class="text-xs text-on-surface-variant">최근 활동 12개 중 4개 표시 중</span>
+<div class="flex gap-unit-2">
+<button class="p-unit-1 rounded hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-unit-1 rounded hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Custom Cursor Atmospheric Script -->
+<script>
+        // Simple subtle interaction for enterprise feel
+        document.querySelectorAll('.group').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                // Subtle feedback handled by Tailwind, can add JS logic here for complex feedback
+            });
+        });
+    </script>
+</body></html>

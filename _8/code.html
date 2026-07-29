@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>답변 검토 - PSM AI Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#e7e8e9",
+                    "on-primary-container": "#8393bc",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#0039b3",
+                    "secondary": "#0041c9",
+                    "surface-bright": "#f8f9fa",
+                    "primary-container": "#1b2b4e",
+                    "outline-variant": "#c5c6cf",
+                    "on-primary-fixed-variant": "#37466b",
+                    "on-background": "#191c1d",
+                    "on-tertiary-fixed": "#2c1600",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#ffb86f",
+                    "on-primary-fixed": "#081a3d",
+                    "primary-fixed": "#d9e2ff",
+                    "on-error": "#ffffff",
+                    "on-secondary-container": "#e4e7ff",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-tertiary-container": "#d57f00",
+                    "surface-container": "#edeeef",
+                    "on-surface-variant": "#45464e",
+                    "tertiary-container": "#432500",
+                    "on-secondary": "#ffffff",
+                    "background": "#f8f9fa",
+                    "primary-fixed-dim": "#b6c6f1",
+                    "surface-variant": "#e1e3e4",
+                    "error": "#ba1a1a",
+                    "outline": "#75777f",
+                    "surface-dim": "#d9dadb",
+                    "error-container": "#ffdad6",
+                    "inverse-surface": "#2e3132",
+                    "primary": "#041638",
+                    "on-surface": "#191c1d",
+                    "inverse-primary": "#b6c6f1",
+                    "secondary-container": "#0356ff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-tertiary-fixed-variant": "#693c00",
+                    "tertiary": "#271300",
+                    "surface": "#f8f9fa",
+                    "secondary-fixed-dim": "#b6c4ff",
+                    "surface-tint": "#4e5e84",
+                    "tertiary-fixed": "#ffdcbd",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#001551",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed": "#dce1ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "unit-6": "24px",
+                    "unit-3": "12px",
+                    "unit-12": "48px",
+                    "touch-target": "48px",
+                    "unit-4": "16px",
+                    "base": "4px",
+                    "unit-16": "64px",
+                    "gutter": "24px",
+                    "unit-8": "32px",
+                    "unit-2": "8px",
+                    "margin-desktop": "32px",
+                    "unit-1": "4px"
+            },
+            "fontFamily": {
+                    "headline-xl": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c5c6cf;
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface dark:bg-background border-r border-outline-variant dark:border-outline flex flex-col h-screen py-unit-6 px-unit-4 z-50">
+<div class="mb-unit-12 px-unit-2">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed">PSM AI 비서</h1>
+<p class="text-on-surface-variant font-label-md text-label-md">안전 관리 시스템</p>
+</div>
+<nav class="flex-grow space-y-unit-2">
+<a class="flex items-center gap-unit-3 px-unit-3 h-touch-target rounded-lg text-on-surface-variant dark:text-outline hover:text-on-surface hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">대시보드</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 h-touch-target rounded-lg text-secondary dark:text-secondary-fixed-dim font-bold border-r-2 border-secondary bg-surface-container-low transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-body-md text-body-md">MOC 이력</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 h-touch-target rounded-lg text-on-surface-variant dark:text-outline hover:text-on-surface hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-body-md text-body-md">가이드라인</span>
+</a>
+<a class="flex items-center gap-unit-3 px-unit-3 h-touch-target rounded-lg text-on-surface-variant dark:text-outline hover:text-on-surface hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">설정</span>
+</a>
+</nav>
+<div class="mt-auto p-unit-4 bg-surface-container-low rounded-xl">
+<div class="flex items-center gap-unit-3 mb-unit-4">
+<img class="w-10 h-10 rounded-full border-2 border-white object-cover" data-alt="Close up professional portrait of a safety officer in high-visibility technical gear" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ6mTnlo4eTEcWvEKdCuTM6TL_kRGkQznypESrpKLhPTCR9tAg7swkCfEa3CYpFxdcf_cN7dPCFkqJASR8cJNOKEkBA6r85xQJ2zHNYu1Npzhg_Vv64_Qi9gCxwowzHAhpw0rcyIVACgmY0Xgvq_WajlxRB00EF1Ui0Vr6BehvhDLv5lamHa6mBO3SVFPRDdphtRsHzdh6iw4VywudXK1LQZzMyb_5o21X5wqi_gbIaed-K0LaJTHDnA"/>
+<div>
+<p class="font-label-md text-label-md font-bold text-primary">책임 관리자</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-wider">현장 관리자</p>
+</div>
+</div>
+<button class="w-full bg-[#0055FF] text-white py-unit-3 rounded-lg font-bold text-body-sm hover:brightness-110 transition-all">신규 안전 검토</button>
+</div>
+</aside>
+<!-- Content Area -->
+<main class="flex-grow ml-[280px] flex flex-col">
+<!-- TopAppBar Anchor -->
+<header class="docked full-width top-0 sticky z-40 bg-surface dark:bg-background border-b border-outline-variant dark:border-outline flex justify-between items-center h-touch-target px-margin-desktop w-full transition-all duration-200">
+<div class="flex items-center gap-unit-4">
+<div class="flex items-center bg-surface-container-low rounded-full px-unit-4 h-9 w-64">
+<span class="material-symbols-outlined text-outline text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-label-md w-full px-unit-2" placeholder="안전 기록 검색..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-unit-6">
+<div class="flex items-center gap-unit-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high rounded-full p-unit-2">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high rounded-full p-unit-2">help_outline</button>
+</div>
+</div>
+</header>
+<!-- STEP_REVIEW Content -->
+<div class="max-w-5xl mx-auto w-full px-margin-desktop py-unit-8">
+<!-- Header Section -->
+<div class="mb-unit-8">
+<div class="flex items-center gap-unit-2 text-secondary font-label-md text-label-md uppercase tracking-widest mb-unit-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                최종 검토 단계
+            </div>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-unit-2">변경요소관리(MOC) 검토</h2>
+<p class="text-on-surface-variant font-body-md text-body-md max-w-2xl">모든 입력 데이터를 확인하고 AI 안전 위험 분석을 진행하십시오. (참조: PSM-2024-089)</p>
+</div>
+<!-- Bento Layout Content -->
+<div class="grid grid-cols-12 gap-unit-6">
+<!-- Main Review List (Left 8 columns) -->
+<div class="col-span-12 lg:col-span-8 space-y-unit-4">
+<!-- Warning Message -->
+<div class="bg-[#FFF4E5] border-l-4 border-[#FF9900] p-unit-4 rounded-r-lg flex gap-unit-4 items-start">
+<span class="material-symbols-outlined text-[#B26B00]">warning</span>
+<div>
+<h4 class="font-bold text-[#B26B00] text-body-sm">중요 알림</h4>
+<p class="text-[#B26B00] text-body-sm opacity-90">답변을 변경하면 최종 MOC 결과에 영향을 미칠 수 있습니다. 큰 변경 사항은 특정 기술 하위 검토를 다시 실행해야 할 수도 있습니다.</p>
+</div>
+</div>
+<!-- Question Rows -->
+<div class="space-y-unit-2">
+<!-- Row 1 -->
+<div class="bg-white border border-[#E9ECEF] rounded-lg p-unit-4 flex items-center justify-between hover:border-secondary transition-all group">
+<div class="flex-grow">
+<span class="text-label-md font-label-md text-outline uppercase tracking-tighter mb-1 block">공정 식별</span>
+<h3 class="font-body-md text-body-md font-bold text-primary mb-1">본 MOC에서 수정되는 주요 장비는 무엇입니까?</h3>
+<p class="text-secondary font-bold text-body-md">증류탑 T-105 공급 예열기 (Feed Preheater)</p>
+</div>
+<button class="flex items-center gap-2 px-unit-4 py-unit-2 rounded border border-outline-variant text-primary font-bold text-label-md hover:bg-surface-container-low group-hover:border-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            수정
+                        </button>
+</div>
+<!-- Row 2 -->
+<div class="bg-white border border-[#E9ECEF] rounded-lg p-unit-4 flex items-center justify-between hover:border-secondary transition-all group">
+<div class="flex-grow">
+<span class="text-label-md font-label-md text-outline uppercase tracking-tighter mb-1 block">기술적 범위</span>
+<h3 class="font-body-md text-body-md font-bold text-primary mb-1">변경으로 인해 운전 압력이 현재 한계를 초과합니까?</h3>
+<div class="flex items-center gap-2">
+<span class="text-[#B26B00] font-bold text-body-md">예</span>
+<span class="text-on-surface-variant text-body-sm">(12.5 bar에서 15.0 bar로 상승)</span>
+</div>
+</div>
+<button class="flex items-center gap-2 px-unit-4 py-unit-2 rounded border border-outline-variant text-primary font-bold text-label-md hover:bg-surface-container-low group-hover:border-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            수정
+                        </button>
+</div>
+<!-- Row 3 -->
+<div class="bg-white border border-[#E9ECEF] rounded-lg p-unit-4 flex items-center justify-between hover:border-secondary transition-all group">
+<div class="flex-grow">
+<span class="text-label-md font-label-md text-outline uppercase tracking-tighter mb-1 block">건설 재질</span>
+<h3 class="font-body-md text-body-md font-bold text-primary mb-1">새로운 화학 물질이나 촉매가 도입됩니까?</h3>
+<p class="text-primary font-bold text-body-md">아니요</p>
+</div>
+<button class="flex items-center gap-2 px-unit-4 py-unit-2 rounded border border-outline-variant text-primary font-bold text-label-md hover:bg-surface-container-low group-hover:border-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            수정
+                        </button>
+</div>
+<!-- Row 4 -->
+<div class="bg-white border border-[#E9ECEF] rounded-lg p-unit-4 flex items-center justify-between hover:border-secondary transition-all group">
+<div class="flex-grow">
+<span class="text-label-md font-label-md text-outline uppercase tracking-tighter mb-1 block">안전 제어</span>
+<h3 class="font-body-md text-body-md font-bold text-primary mb-1">이 변경이 기존 안전 밸브 설정에 영향을 줍니까?</h3>
+<p class="text-[#B26B00] font-bold text-body-md">예 - PSV-201 재교정 필요</p>
+</div>
+<button class="flex items-center gap-2 px-unit-4 py-unit-2 rounded border border-outline-variant text-primary font-bold text-label-md hover:bg-surface-container-low group-hover:border-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            수정
+                        </button>
+</div>
+<!-- Row 5 -->
+<div class="bg-white border border-[#E9ECEF] rounded-lg p-unit-4 flex items-center justify-between hover:border-secondary transition-all group">
+<div class="flex-grow">
+<span class="text-label-md font-label-md text-outline uppercase tracking-tighter mb-1 block">배관 및 계장</span>
+<h3 class="font-body-md text-body-md font-bold text-primary mb-1">P&amp;ID 마크업이 완료되어 첨부되었습니까?</h3>
+<p class="text-primary font-bold text-body-md">예 (PID-882-A_REV2.pdf)</p>
+</div>
+<button class="flex items-center gap-2 px-unit-4 py-unit-2 rounded border border-outline-variant text-primary font-bold text-label-md hover:bg-surface-container-low group-hover:border-secondary transition-all">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                            수정
+                        </button>
+</div>
+</div>
+</div>
+<!-- Summary & Actions (Right 4 columns) -->
+<div class="col-span-12 lg:col-span-4 space-y-unit-6">
+<!-- Progress Card -->
+<div class="bg-white border border-[#E9ECEF] p-unit-6 rounded-lg">
+<div class="mb-unit-4">
+<div class="flex justify-between items-center mb-unit-2">
+<span class="font-bold text-primary text-body-sm">검토 진행률</span>
+<span class="text-secondary font-bold text-body-sm">100%</span>
+</div>
+<div class="w-full bg-[#E9ECEF] h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-full"></div>
+</div>
+</div>
+<div class="space-y-unit-3">
+<div class="flex items-center gap-unit-3 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-green-600 text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            일반 정보
+                        </div>
+<div class="flex items-center gap-unit-3 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-green-600 text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            기술 규격
+                        </div>
+<div class="flex items-center gap-unit-3 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-green-600 text-[20px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            안전 및 환경
+                        </div>
+</div>
+</div>
+<!-- Side Visual / Context -->
+<div class="relative group h-48 rounded-lg overflow-hidden border border-[#E9ECEF]">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-alt="Technical schematic diagram" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAnXWuAe7f7sshKqBotizmeRVDtexAjDD9iLMqhxRSY77PFyXiF_OySwijpG3lNMO8XEz-wDAAkrFg2shg9IkyUg3GMsnz1f21nsG2lfnaZwsh7AqvYaHRx3zDHy_efSfuGvI5DgvzuW0hOOd2TemmYL_XMEqygLBGYaCuIOkZrC2jMbrTmdou3Kl_Qw008ceUmG_SNa8fFfk2LT78ADUlgN1Tvq8wsWV109DZFHw2FNydlHKnImawVfg')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent flex items-end p-unit-4">
+<div>
+<p class="text-white font-bold text-label-md uppercase tracking-widest mb-1">참조 모델</p>
+<p class="text-white/80 text-body-sm leading-tight">디지털 트윈: Sector-04 전처리 장치</p>
+</div>
+</div>
+</div>
+<!-- Final Action Button -->
+<div class="sticky top-24">
+<button class="w-full bg-secondary-container hover:bg-[#0039b3] text-white h-unit-12 rounded-lg font-bold flex items-center justify-center gap-unit-2 transition-all transform active:scale-[0.98] shadow-lg shadow-secondary/20">
+                        검토 완료 및 결과 분석
+                        <span class="material-symbols-outlined">analytics</span>
+</button>
+<p class="text-center text-on-surface-variant font-label-md text-label-md mt-unit-4">예상 분석 시간: 45초</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mouseenter', () => {
+        });
+    });
+</script>
+</body></html>

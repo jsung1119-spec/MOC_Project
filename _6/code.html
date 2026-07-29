@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MOC 신청서 - 인쇄 미리보기</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            .a4-page { 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                border: none !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .table-border-fix {
+            border-collapse: collapse;
+        }
+        .table-border-fix td, .table-border-fix th {
+            border: 1px solid #75777f;
+            padding: 8px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#e7e8e9",
+                      "on-primary-container": "#8393bc",
+                      "inverse-on-surface": "#f0f1f2",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-fixed-variant": "#0039b3",
+                      "secondary": "#0041c9",
+                      "surface-bright": "#f8f9fa",
+                      "primary-container": "#1b2b4e",
+                      "outline-variant": "#c5c6cf",
+                      "on-primary-fixed-variant": "#37466b",
+                      "on-background": "#191c1d",
+                      "on-tertiary-fixed": "#2c1600",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb86f",
+                      "on-primary-fixed": "#081a3d",
+                      "primary-fixed": "#d9e2ff",
+                      "on-error": "#ffffff",
+                      "on-secondary-container": "#e4e7ff",
+                      "surface-container-highest": "#e1e3e4",
+                      "on-tertiary-container": "#d57f00",
+                      "surface-container": "#edeeef",
+                      "on-surface-variant": "#45464e",
+                      "tertiary-container": "#432500",
+                      "on-secondary": "#ffffff",
+                      "background": "#f8f9fa",
+                      "primary-fixed-dim": "#b6c6f1",
+                      "surface-variant": "#e1e3e4",
+                      "error": "#ba1a1a",
+                      "outline": "#75777f",
+                      "surface-dim": "#d9dadb",
+                      "error-container": "#ffdad6",
+                      "inverse-surface": "#2e3132",
+                      "primary": "#041638",
+                      "on-surface": "#191c1d",
+                      "inverse-primary": "#b6c6f1",
+                      "secondary-container": "#0356ff",
+                      "surface-container-low": "#f3f4f5",
+                      "on-tertiary-fixed-variant": "#693c00",
+                      "tertiary": "#271300",
+                      "surface": "#f8f9fa",
+                      "secondary-fixed-dim": "#b6c4ff",
+                      "surface-tint": "#4e5e84",
+                      "tertiary-fixed": "#ffdcbd",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#001551",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed": "#dce1ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "unit-6": "24px",
+                      "unit-3": "12px",
+                      "unit-12": "48px",
+                      "touch-target": "48px",
+                      "unit-4": "16px",
+                      "base": "4px",
+                      "unit-16": "64px",
+                      "gutter": "24px",
+                      "unit-8": "32px",
+                      "unit-2": "8px",
+                      "margin-desktop": "32px",
+                      "unit-1": "4px"
+              },
+              "fontFamily": {
+                      "headline-xl": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface-container-low font-body-md text-on-surface flex flex-col items-center">
+<!-- Floating Action Bar -->
+<div class="no-print sticky top-unit-4 z-50 w-full max-w-4xl px-unit-4">
+<div class="bg-surface border border-outline-variant shadow-lg rounded-xl p-unit-3 flex items-center justify-between">
+<button class="flex items-center gap-unit-2 text-on-surface-variant hover:text-primary transition-colors font-label-md" onclick="history.back()">
+<span class="material-symbols-outlined">arrow_back</span>
+                편집으로 돌아가기
+            </button>
+<div class="flex gap-unit-3">
+<button class="flex items-center gap-unit-2 border border-secondary text-secondary px-unit-4 h-unit-12 rounded-lg font-label-md hover:bg-secondary-fixed transition-colors" onclick="window.print()">
+<span class="material-symbols-outlined">print</span>
+                    지금 인쇄
+                </button>
+<button class="flex items-center gap-unit-2 bg-secondary-container text-on-secondary px-unit-6 h-unit-12 rounded-lg font-label-md hover:brightness-110 transition-all shadow-md">
+<span class="material-symbols-outlined">download</span>
+                    PDF 다운로드
+                </button>
+</div>
+</div>
+</div>
+<!-- A4 Document Content -->
+<main class="a4-page overflow-hidden">
+<!-- Header Section -->
+<header class="flex border-b-2 border-primary pb-unit-4 mb-unit-6 items-center">
+<div class="w-1/4">
+<div class="w-16 h-16 bg-primary-container flex items-center justify-center rounded-lg">
+<span class="material-symbols-outlined text-on-secondary-container text-4xl" style="font-variation-settings: 'FILL' 1;">factory</span>
+</div>
+</div>
+<div class="w-2/4 text-center">
+<h1 class="font-headline-md text-headline-md text-primary uppercase tracking-wider">변경요소관리(MOC)</h1>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mt-1">공식 신청서</p>
+</div>
+<div class="w-1/4 text-right space-y-1">
+<div class="font-label-md text-label-md">
+<span class="text-on-surface-variant">문서 번호:</span> <span class="font-bold">MOC-2024-0892</span>
+</div>
+<div class="font-label-md text-label-md">
+<span class="text-on-surface-variant">개정번호:</span> <span class="font-bold">04</span>
+</div>
+<div class="font-label-md text-label-md">
+<span class="text-on-surface-variant">일자:</span> <span class="font-bold">2024년 10월 24일</span>
+</div>
+</div>
+</header>
+<!-- Section 1: General Information -->
+<section class="mb-unit-6">
+<h2 class="bg-surface-container-high px-unit-3 py-unit-1 font-label-md text-label-md uppercase border-l-4 border-secondary mb-unit-3">1. 일반 정보</h2>
+<table class="w-full table-border-fix font-body-sm text-body-sm">
+<tbody>
+<tr>
+<td class="bg-surface-container-low font-bold w-1/4">프로젝트명</td>
+<td class="w-1/4">Hydro-Cracker Unit Upgrade</td>
+<td class="bg-surface-container-low font-bold w-1/4">시설 위치</td>
+<td class="w-1/4">Terminal B - Sector 4</td>
+</tr>
+<tr>
+<td class="bg-surface-container-low font-bold">기안자</td>
+<td>Robert J. Miller</td>
+<td class="bg-surface-container-low font-bold">부서</td>
+<td>Operations Engineering</td>
+</tr>
+<tr>
+<td class="bg-surface-container-low font-bold">변경 유형</td>
+<td>영구/기술적 변경</td>
+<td class="bg-surface-container-low font-bold">우선순위</td>
+<td><span class="text-error font-bold">긴급</span></td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- Section 2: Change Description -->
+<section class="mb-unit-6">
+<h2 class="bg-surface-container-high px-unit-3 py-unit-1 font-label-md text-label-md uppercase border-l-4 border-secondary mb-unit-3">2. 변경 내용 및 사유</h2>
+<div class="border border-outline p-unit-3 font-body-sm text-body-sm min-h-[120px] text-justify leading-relaxed">
+<p class="mb-unit-2"><span class="font-bold uppercase text-[10px] text-on-surface-variant">상세 범위:</span></p>
+                기존 공압 제어 밸브(CV-402, CV-405)를 현대식 디지털 스마트 액추에이터로 교체합니다. 이번 업그레이드를 통해 응답 지연 시간을 45% 단축하고 원격 진단 기능을 구현하고자 합니다. 본 변경 사항에는 24V DC 신호 라인 재배선 및 Satellite Rack Room 2 내 전용 PLC 랙 설치가 포함됩니다.
+                
+                <p class="mt-unit-4 mb-unit-2"><span class="font-bold uppercase text-[10px] text-on-surface-variant">기술적 사유:</span></p>
+                기존 밸브의 수명이 다하여 MTBF(평균 고장 간격)가 증가하고 있습니다. 3분기 안전 감사에서 규정된 배출 모니터링에 대한 새로운 환경 규제 준수 기준을 충족하기 위해 디지털 통합이 필수적입니다.
+            </div>
+</section>
+<!-- Section 3: Safety & Risk Assessment -->
+<section class="mb-unit-6">
+<h2 class="bg-surface-container-high px-unit-3 py-unit-1 font-label-md text-label-md uppercase border-l-4 border-secondary mb-unit-3">3. 안전 및 위험성 검토 스크리닝</h2>
+<table class="w-full table-border-fix font-body-sm text-body-sm">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="w-2/3 text-left">잠재적 영향 영역</th>
+<th class="w-1/6 text-center">예</th>
+<th class="w-1/6 text-center">아니오</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>해당 변경이 압력 안전 밸브(PSV) 설정에 영향을 줍니까?</td>
+<td class="text-center"></td>
+<td class="text-center font-bold">X</td>
+</tr>
+<tr>
+<td>비상 차단(ESD) 로직에 수정이 발생합니까?</td>
+<td class="text-center font-bold">X</td>
+<td class="text-center"></td>
+</tr>
+<tr>
+<td>화학 조성 또는 공정 유체에 변화가 있습니까?</td>
+<td class="text-center"></td>
+<td class="text-center font-bold">X</td>
+</tr>
+<tr>
+<td>본 수정 작업으로 인해 위험 지역 분류를 업데이트해야 합니까?</td>
+<td class="text-center"></td>
+<td class="text-center font-bold">X</td>
+</tr>
+<tr>
+<td>시운전 전 PSSR(가동 전 안전 점검)이 필요합니까?</td>
+<td class="text-center font-bold">X</td>
+<td class="text-center"></td>
+</tr>
+</tbody>
+</table>
+</section>
+<!-- Section 4: Implementation Checklist -->
+<section class="mb-unit-6">
+<h2 class="bg-surface-container-high px-unit-3 py-unit-1 font-label-md text-label-md uppercase border-l-4 border-secondary mb-unit-3">4. 문서 업데이트 및 교육</h2>
+<table class="w-full table-border-fix font-body-sm text-body-sm">
+<tbody><tr class="bg-surface-container-low font-bold">
+<td>인도물</td>
+<td>담당 부서</td>
+<td>기한</td>
+<td>상태</td>
+</tr>
+<tr>
+<td>P&amp;ID 업데이트 (Sheets 04-12)</td>
+<td>Drafting Dept.</td>
+<td>2024년 11월 1일</td>
+<td>대기 중</td>
+</tr>
+<tr>
+<td>운전 절차서 SOP-HC-09</td>
+<td>Process Lead</td>
+<td>2024년 10월 28일</td>
+<td>초안 작성됨</td>
+</tr>
+<tr>
+<td>연산자 교육 모듈</td>
+<td>HSE Training</td>
+<td>2024년 11월 5일</td>
+<td>일정 수립됨</td>
+</tr>
+</tbody></table>
+</section>
+<!-- Section 5: Approvals -->
+<section class="mt-unit-8">
+<h2 class="bg-surface-container-high px-unit-3 py-unit-1 font-label-md text-label-md uppercase border-l-4 border-secondary mb-unit-3">5. 최종 승인</h2>
+<div class="grid grid-cols-3 gap-unit-4 mt-unit-4">
+<div class="border-t border-on-surface pt-unit-2 text-center">
+<p class="font-bold">A. Peterson</p>
+<p class="text-[10px] text-on-surface-variant uppercase">기술 당국 (Technical Authority)</p>
+<p class="text-[10px] mt-2 italic text-outline">전자 서명 완료: 2024-10-24 14:20</p>
+</div>
+<div class="border-t border-on-surface pt-unit-2 text-center">
+<p class="font-bold">Sarah Chen</p>
+<p class="text-[10px] text-on-surface-variant uppercase">안전 관리자 (Safety Manager)</p>
+<div class="h-8"></div>
+<p class="text-[10px] border-b border-dashed border-outline mx-4"></p>
+</div>
+<div class="border-t border-on-surface pt-unit-2 text-center">
+<p class="font-bold">Marcus Thorne</p>
+<p class="text-[10px] text-on-surface-variant uppercase">공장장 (Plant Director)</p>
+<div class="h-8"></div>
+<p class="text-[10px] border-b border-dashed border-outline mx-4"></p>
+</div>
+</div>
+</section>
+<!-- Footer / Page Number -->
+<footer class="absolute bottom-unit-8 left-unit-8 right-unit-8 flex justify-between items-end text-[10px] text-on-surface-variant border-t border-outline-variant pt-unit-2">
+<div>
+                기밀 문서: PSM AI ASSISTANT ENTERPRISE SYSTEM
+            </div>
+<div>
+                페이지 1 / 1
+            </div>
+</footer>
+</main>
+<!-- Visual Polish / Background Decoration (Only visible in browser) -->
+<div class="no-print fixed inset-0 -z-10 opacity-20 pointer-events-none overflow-hidden">
+</div>
+<script>
+        // Simple micro-interaction for buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mousedown', () => {
+                button.classList.add('scale-95');
+            });
+            button.addEventListener('mouseup', () => {
+                button.classList.remove('scale-95');
+            });
+        });
+    </script>
+</body></html>
