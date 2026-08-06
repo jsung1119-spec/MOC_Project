@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  AnswerValue, Draft, MocCase, MocStatus, WorkType, emptyDraft, guidelines, judge,
-  nextCaseNumber, optionMeta, questions, seedCases, statusLabels, visibleQuestions,
+  AnswerValue, Draft, MocCase, MocStatus, Question, WorkType, createMocCase, guidelines, judge,
+  normalizeMocCases, optionMeta, questions, statusLabels, visibleQuestions,
 } from "./lib/moc";
+import { casesForSite, isSite, remindersForCases, Site, sites } from "./lib/sites";
 
-type View = "dashboard" | "new" | "question" | "review" | "result" | "documents" | "draft" | "preview" | "progress" | "reminders" | "history" | "admin";
+type View = "dashboard" | "new" | "question" | "review" | "result" | "documents" | "draft" | "preview" | "progress" | "reminders" | "history" | "approvals" | "admin";
+type AdminPromptMode = "access" | "delete-history";
+const ADMIN_PASSWORD = "0000";
+const LEGACY_SAMPLE_CASE_IDS = new Set(["moc-001", "moc-002", "moc-003", "moc-004", "moc-005"]);
 const workTypes: { label: WorkType; icon: string; detail: string }[] = [
   { label: "기계 설비", icon: "⚙", detail: "펌프·압축기·탱크" }, { label: "배관", icon: "⌁", detail: "배관·밸브·가스켓" },
   { label: "전기", icon: "ϟ", detail: "전원·차단기·모터" }, { label: "계장", icon: "⌁", detail: "Logic·Set Point·계기" },
@@ -30,39 +34,61 @@ function fmt(date: string) { return date ? date.replaceAll("-", ". ") : "-"; }
 function daysFrom(date: string) { return Math.ceil((new Date("2026-07-29").getTime() - new Date(date).getTime()) / 86400000); }
 function gradeLabel(c?: MocCase) { return c?.judgment?.grade === "NONE" || !c?.judgment ? "-" : `${c.judgment.grade}등급`; }
 
+function BrandLogo({ className = "" }: { className?: string }) {
+  return <img className={`brand-logo ${className}`.trim()} src="/posco-future-m-ci-ko.png" alt="포스코퓨처엠" />;
+}
+
 export default function Home() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [loginId, setLoginId] = useState("operator01");
-  const [password, setPassword] = useState("test1234");
-  const [loginError, setLoginError] = useState("");
+  const [entered, setEntered] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [view, setView] = useState<View>("dashboard");
-  const [cases, setCases] = useState<MocCase[]>(seedCases);
-  const [activeId, setActiveId] = useState<string>(seedCases[0].id);
+  const [cases, setCases] = useState<MocCase[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
   const [questionIndex, setQuestionIndex] = useState(0);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("saved");
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
   const [reminderLogs, setReminderLogs] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
+  const [adminPromptOpen, setAdminPromptOpen] = useState(false);
+  const [adminPromptMode, setAdminPromptMode] = useState<AdminPromptMode>("access");
+  const [pendingHistoryDeleteIds, setPendingHistoryDeleteIds] = useState<string[]>([]);
+  const [questionList, setQuestionList] = useState<Question[]>(questions);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("safechange-cases");
-      const session = localStorage.getItem("safechange-session");
-      if (saved) setCases(JSON.parse(saved));
-      if (new URLSearchParams(window.location.search).has("logout")) {
-        localStorage.removeItem("safechange-session");
-      } else if (session) setLoggedIn(true);
+      const savedSite = localStorage.getItem("safechange-selected-site");
+      const savedQuestions = localStorage.getItem("safechange-questions");
+      if (saved) setCases(normalizeMocCases(JSON.parse(saved)).filter((item) => !LEGACY_SAMPLE_CASE_IDS.has(item.id)));
+      if (savedQuestions) setQuestionList(JSON.parse(savedQuestions));
+      if (isSite(savedSite)) setSelectedSite(savedSite);
     } finally { setHydrated(true); }
   }, []);
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !entered) return;
     localStorage.setItem("safechange-cases", JSON.stringify(cases));
-  }, [cases, hydrated]);
+  }, [cases, entered, hydrated]);
+  useEffect(() => {
+    if (!hydrated || !entered) return;
+    localStorage.setItem("safechange-questions", JSON.stringify(questionList));
+  }, [questionList, entered, hydrated]);
 
-  const active = cases.find(c => c.id === activeId);
-  const activeQuestions = active ? visibleQuestions(active.answers) : questions;
-  const reminders = cases.filter(c => !["CLOSED", "WORK_COMPLETED"].includes(c.status) && (c.status === "DOCUMENT_DRAFTING" || c.dueDate <= "2026-07-31"));
+  useEffect(() => {
+    if (!hydrated || !entered || !selectedSite) return;
+    localStorage.setItem("safechange-selected-site", selectedSite);
+  }, [entered, selectedSite, hydrated]);
+  useEffect(() => {
+    const onPopState = () => returnToEntry();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const siteCases = selectedSite ? casesForSite(cases, selectedSite) : [];
+  const active = siteCases.find(c => c.id === activeId);
+  const activeQuestions = active ? visibleQuestions(active.answers, questionList, active.workType) : questionList;
+  const reminders = remindersForCases(siteCases);
 
   function notify(message: string) { setToast(message); setTimeout(() => setToast(""), 2600); }
   function updateCase(patch: Partial<MocCase>) {
@@ -71,15 +97,80 @@ export default function Home() {
     setTimeout(() => setSaveState("saved"), 480);
   }
   function go(next: View) { setView(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function requestView(next: View) {
+    if (next === "admin" && !adminAuthorized) {
+      setAdminPromptMode("access");
+      setAdminPromptOpen(true);
+      return;
+    }
+    go(next);
+  }
+  function selectSite(site: Site) {
+    setSelectedSite(site);
+    setActiveId(casesForSite(cases, site)[0]?.id ?? "");
+    go("dashboard");
+  }
+  function returnToEntry() {
+    setSelectedSite(null);
+    setView("dashboard");
+    setActiveId("");
+    setQuestionIndex(0);
+    setSaveState("saved");
+    setToast("");
+    setFilter("");
+    setAdminAuthorized(false);
+    setAdminPromptOpen(false);
+    try {
+      localStorage.removeItem("safechange-selected-site");
+    } catch {}
+    setEntered(false);
+  }
+  function enterApplication() {
+    window.history.pushState({ safechange: "entered" }, "");
+    setEntered(true);
+  }
+  function requestHistoryDeletion(ids: string[] = []) {
+    if (!selectedSite) return;
+    if (ids.length === 0) {
+      notify("삭제할 이력을 선택해 주세요.");
+      return;
+    }
+    setPendingHistoryDeleteIds(ids);
+    setAdminPromptMode("delete-history");
+    setAdminPromptOpen(true);
+  }
+  function authorizeAdminAction() {
+    if (adminPromptMode === "delete-history" && selectedSite) {
+      const deletedIds = new Set(pendingHistoryDeleteIds);
+      setCases((current) => current.filter((item) => !deletedIds.has(item.id)));
+      setReminderLogs((current) => current.filter((id) => !deletedIds.has(id)));
+      setPendingHistoryDeleteIds([]);
+      setActiveId("");
+      notify(`${selectedSite}의 작성 이력과 Reminder를 삭제했습니다.`);
+    } else {
+      setAdminAuthorized(true);
+      go("admin");
+    }
+    setAdminPromptOpen(false);
+    setAdminPromptMode("access");
+  }
+  function approveCase(id: string) {
+    setCases((current) => current.map((item) => item.id === id ? { ...item, status: "APPROVED" } : item));
+    notify("공장장/리더 승인 처리가 완료되었습니다.");
+  }
   function startCase(type: WorkType) {
+    if (!selectedSite) {
+      notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
+      return;
+    }
     const id = `moc-${Date.now()}`;
-    const item: MocCase = { id, caseNumber: nextCaseNumber(cases), title: `${type} 변경`, workType: type, author: "김현수", department: "생산1팀", status: "QUESTIONNAIRE_IN_PROGRESS", createdAt: "2026-07-29", dueDate: "2026-08-05", answers: {}, draft: emptyDraft() };
+    const item = createMocCase({ id, cases, workType: type, site: selectedSite });
     setCases(prev => [item, ...prev]); setActiveId(id); setQuestionIndex(0); go("question");
   }
   function answer(value: AnswerValue) {
     if (!active) return;
     const answers = { ...active.answers, [activeQuestions[questionIndex].id]: value };
-    const validIds = new Set(visibleQuestions(answers).map(q => q.id));
+    const validIds = new Set(visibleQuestions(answers, questionList, active.workType).map(q => q.id));
     Object.keys(answers).forEach(k => { if (!validIds.has(k)) delete answers[k]; });
     updateCase({ answers, status: "QUESTIONNAIRE_IN_PROGRESS" });
     if (value === "UNKNOWN") notify("검토 필요로 기록했습니다. 다음 질문을 계속 진행하세요.");
@@ -87,21 +178,14 @@ export default function Home() {
   function runJudgment() {
     if (!active) return;
     const result = judge(active.answers);
-    updateCase({ judgment: result, status: "JUDGMENT_COMPLETED" });
-    go("result");
+    updateCase({ judgment: result, status: "SUBMITTED" });
+    go("approvals");
   }
-  function login(e: React.FormEvent) {
-    e.preventDefault();
-    if (loginId === "operator01" && password === "test1234") {
-      localStorage.setItem("safechange-session", "operator01"); setLoggedIn(true); setLoginError("");
-    } else { setLoginError("아이디 또는 비밀번호가 올바르지 않습니다. 다시 입력해 주세요."); }
-  }
-  function logout() { localStorage.removeItem("safechange-session"); setLoggedIn(false); setView("dashboard"); }
 
   if (!hydrated) return <div className="loading">SafeChange를 준비하고 있습니다…</div>;
-  if (!loggedIn) return <Login id={loginId} password={password} error={loginError} onId={setLoginId} onPassword={setPassword} onSubmit={login} />;
+  if (!entered) return <EntryScreen onEnter={enterApplication} />;
 
-  const main = view === "dashboard" ? <Dashboard cases={cases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v = "progress") => { setActiveId(c.id); go(v); }} onReminder={() => go("reminders")} />
+  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v = "progress") => { setActiveId(c.id); go(v); }} onReminder={() => go("reminders")} onHistory={() => go("history")} />
     : view === "new" ? <NewCase onSelect={startCase} onBack={() => go("dashboard")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
     : view === "review" && active ? <Review item={active} list={activeQuestions} onEdit={(i) => { setQuestionIndex(i); go("question"); }} onBack={() => go("question")} onJudge={runJudgment} />
@@ -111,64 +195,67 @@ export default function Home() {
     : view === "preview" && active ? <Preview item={active} onEdit={() => go("draft")} onSubmit={() => { updateCase({ status: "SUBMITTED" }); notify("검토 담당자에게 제출되었습니다."); }} />
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
     : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={(c) => { setActiveId(c.id); go(c.judgment ? "draft" : "question"); }} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
-    : view === "history" ? <History items={cases} filter={filter} onFilter={setFilter} onOpen={(c) => { setActiveId(c.id); go("progress"); }} />
-    : view === "admin" ? <Admin /> : null;
+    : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onOpen={(c) => { setActiveId(c.id); go("progress"); }} onRequestDelete={requestHistoryDeletion} />
+    : view === "approvals" ? <Approvals items={siteCases} onApprove={approveCase} />
+    : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} onGo={go} />
+      <Sidebar view={view} site={selectedSite} reminderCount={reminders.length} onSelectSite={selectSite} onGo={requestView} />
       <div className="app-main">
-        <Header view={view} onLogout={logout} />
-        <main className="content">{main}</main>
+        <Header view={view} site={selectedSite} onReturnToEntry={returnToEntry} />
+        <main className="content">{selectedSite ? main : <SiteSelectionPrompt />}</main>
       </div>
       {toast && <div className="toast"><span>✓</span>{toast}</div>}
+      {adminPromptOpen && <AdminPasswordPrompt mode={adminPromptMode} onCancel={() => setAdminPromptOpen(false)} onAuthorize={authorizeAdminAction} />}
     </div>
   );
 }
 
-function Login({ id, password, error, onId, onPassword, onSubmit }: { id: string; password: string; error: string; onId: (v: string) => void; onPassword: (v: string) => void; onSubmit: (e: React.FormEvent) => void }) {
-  return <div className="login-page">
-    <section className="login-story">
-      <div className="brand brand-light"><span className="brand-mark">S</span><div><strong>SafeChange</strong><small>PSM MOC ASSISTANT</small></div></div>
-      <div className="story-copy"><span className="eyebrow">현장을 더 안전하게, 판단은 더 명확하게</span><h1>변경의 시작부터<br/>안전한 완료까지</h1><p>복잡한 업무지침 대신, 단계별 질문에 답하세요.<br/>SafeChange가 판단 근거와 필요한 서류를 안내합니다.</p></div>
-      <div className="trust-row"><div><b>01</b><span>규칙 기반<br/>정확한 판단</span></div><div><b>02</b><span>자동 저장<br/>간편한 작성</span></div><div><b>03</b><span>근거 조항<br/>투명한 결과</span></div></div>
-      <div className="factory-lines" aria-hidden="true"><i/><i/><i/><i/></div>
-    </section>
-    <section className="login-panel">
-      <form className="login-card" onSubmit={onSubmit}>
-        <div className="mobile-brand brand"><span className="brand-mark">S</span><strong>SafeChange</strong></div>
-        <span className="security-chip">● 보안 접속</span><h2>안녕하세요</h2><p className="muted">PSM 변경요소관리 시스템에 로그인하세요.</p>
-        {error && <div className="error-box"><b>!</b><span>{error}</span></div>}
-        <label>아이디<input value={id} onChange={e => onId(e.target.value)} autoComplete="username" placeholder="아이디를 입력하세요"/></label>
-        <label>비밀번호<input type="password" value={password} onChange={e => onPassword(e.target.value)} autoComplete="current-password" placeholder="비밀번호를 입력하세요"/></label>
-        <button className="btn primary full" type="submit">로그인 <span>→</span></button>
-        <div className="test-account"><b>테스트 계정</b><span>operator01</span><span>test1234</span></div>
-        <p className="login-help">로그인에 문제가 있나요? <u>시스템 관리자에게 문의</u></p>
-      </form>
-      <p className="copyright">© 2026 SafeChange. PSM 업무지원 시스템</p>
-    </section>
+function EntryScreen({ onEnter }: { onEnter: () => void }) {
+  return <div className="entry-page"><section className="entry-card"><div className="entry-brand"><BrandLogo /></div><span className="security-chip">PSM 변경요소관리</span><h1>변경의 시작부터<br />안전한 완료까지</h1><p>사업장을 선택하고 변경요소관리 업무를 시작하세요.</p><button className="btn primary entry-button" onClick={onEnter}>입장 <span>→</span></button></section></div>;
+}
+
+function SiteSelector({ site, onSelect }: { site: Site | null; onSelect: (site: Site) => void }) {
+  return <div className="site-selector"><label htmlFor="business-site">사업장</label><select id="business-site" value={site ?? ""} onChange={(event) => { const value = event.target.value; if (isSite(value)) onSelect(value); }}><option value="" disabled>사업장을 선택하세요</option>{sites.map((item) => <option key={item} value={item}>{item}</option>)}</select></div>;
+}
+
+function SiteSelectionPrompt() {
+  return <section className="site-selection-prompt"><span>⌖</span><h1>사업장을 선택해 주세요</h1><p>좌측 상단에서 업무를 진행할 사업장을 선택하면 해당 공장 기준으로 MOC 업무를 관리할 수 있습니다.</p></section>;
+}
+
+function Sidebar({ view, site, reminderCount, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
+  const nav: { key: View; icon: string; label: string }[] = [{ key: "dashboard", icon: "⌂", label: "대시보드" }, { key: "new", icon: "＋", label: "새 변경 판단" }, { key: "history", icon: "▤", label: "작성 이력" }, { key: "reminders", icon: "♧", label: "Reminder" }, { key: "approvals", icon: "✓", label: "검토/승인" }, { key: "admin", icon: "⚙", label: "기준 관리" }];
+  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && <em>{reminderCount}</em>}</button>)}</nav></aside>;
+}
+
+function AdminPasswordPrompt({ mode, onCancel, onAuthorize }: { mode: AdminPromptMode; onCancel: () => void; onAuthorize: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (password !== ADMIN_PASSWORD) {
+      setError("비밀번호가 올바르지 않습니다. 다시 입력해 주세요.");
+      return;
+    }
+    onAuthorize();
+  }
+  return <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 100, display: "grid", placeItems: "center", padding: 20, background: "rgba(9, 31, 47, .42)" }}>
+    <form role="dialog" aria-modal="true" aria-label="기준 관리 비밀번호 입력" onSubmit={submit} className="card" style={{ width: "min(100%, 420px)", padding: 28, boxShadow: "0 20px 50px rgba(9, 31, 47, .3)" }}>
+      <p>{mode === "delete-history" ? "선택한 사업장의 작성 이력과 Reminder를 삭제합니다. 관리자 비밀번호를 입력해 주세요." : "허용된 사용자만 기준 관리에 접근할 수 있습니다. 비밀번호를 입력해 주세요."}</p>
+      <label className="field"><span>비밀번호</span><input autoFocus type="password" inputMode="numeric" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} aria-invalid={Boolean(error)} aria-describedby={error ? "admin-password-error" : undefined} /></label>
+      {error && <p id="admin-password-error" role="alert" className="danger-text">{error}</p>}
+      <div className="bottom-actions"><button type="button" className="btn ghost" onClick={onCancel}>취소</button><button type="submit" className="btn primary">입장</button></div>
+    </form>
   </div>;
 }
 
-function Sidebar({ view, onGo }: { view: View; onGo: (v: View) => void }) {
-  const nav: { key: View; icon: string; label: string }[] = [
-    { key: "dashboard", icon: "⌂", label: "대시보드" }, { key: "new", icon: "＋", label: "새 변경 판단" },
-    { key: "history", icon: "▤", label: "작성 이력" }, { key: "reminders", icon: "♧", label: "Reminder" },
-    { key: "admin", icon: "⚙", label: "기준 관리" },
-  ];
-  return <aside className="sidebar"><div className="brand"><span className="brand-mark">S</span><div><strong>SafeChange</strong><small>PSM MOC ASSISTANT</small></div></div>
-    <nav>{nav.map(n => <button key={n.key} className={cn(view === n.key && "active")} onClick={() => onGo(n.key)}><span>{n.icon}</span>{n.label}{n.key === "reminders" && <em>2</em>}</button>)}</nav>
-    <div className="side-help"><span>?</span><b>도움이 필요하신가요?</b><small>MOC 업무지침과 자주 묻는 질문을 확인하세요.</small><button>도움말 보기 →</button></div>
-    <div className="version">v1.0.0 · Mock guideline</div>
-  </aside>;
+function Header({ view, site, onReturnToEntry }: { view: View; site: Site | null; onReturnToEntry: () => void }) {
+  const titles: Partial<Record<View, string>> = { dashboard: "대시보드", new: "새 변경 판단", history: "작성 이력", reminders: "Reminder 센터", approvals: "검토/승인", admin: "기준 관리" };
+  return <header className="topbar"><div><span className="crumb">PSM 변경요소관리</span><b>{titles[view] || "MOC 업무 지원"}</b></div><div className="header-actions"><button type="button" className="btn ghost" onClick={onReturnToEntry}>처음 화면으로</button><div className="site-context"><span>⌖</span><div><small>선택 사업장</small><b>{site ?? "사업장을 선택해 주세요"}</b></div></div></div></header>;
 }
 
-function Header({ view, onLogout }: { view: View; onLogout: () => void }) {
-  const titles: Partial<Record<View, string>> = { dashboard: "대시보드", new: "새 변경 판단", history: "작성 이력", reminders: "Reminder 센터", admin: "기준 관리" };
-  return <header className="topbar"><div><span className="crumb">PSM 변경요소관리</span><b>{titles[view] || "MOC 업무 지원"}</b></div><div className="header-actions"><button className="icon-btn" aria-label="알림">♧<i>2</i></button><div className="user-avatar">김</div><div className="user-meta"><b>김현수</b><small>생산1팀 · Operator</small></div><button className="logout" onClick={onLogout}>로그아웃</button></div></header>;
-}
-
-function Dashboard({ cases, reminders, onNew, onOpen, onReminder }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase, v?: View) => void; onReminder: () => void }) {
+function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase, v?: View) => void; onReminder: () => void; onHistory: () => void }) {
   const stats = [
     ["판단 진행 중", cases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy"],
     ["초안 작성 중", cases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue"],
@@ -178,10 +265,10 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder }: { cases: Moc
     ["기한 초과", reminders.filter(c => c.dueDate < "2026-07-29").length, "red"],
   ];
   return <div className="page-stack">
-    <section className="welcome"><div><span className="eyebrow">2026년 7월 29일 수요일</span><h1>안녕하세요, 김현수님</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
+    <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
     <section className="dashboard-grid">
-      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onOpen(cases[0], "history")}>전체 보기 →</button></div>
+      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={onHistory}>전체 보기 →</button></div>
         <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><b>{c.title}</b><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < "2026-07-29" && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>
       </div>
       <div className="card reminder-card"><div className="card-head"><div><span className="mini-icon amber">!</span><h2>미완료 Reminder</h2></div><Badge tone="amber">{reminders.length}건</Badge></div>
@@ -296,25 +383,73 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
   </div>;
 }
 
-function History({ items, filter, onFilter, onOpen }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onOpen: (c: MocCase) => void }) {
-  const shown = items.filter(c => [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase())));
-  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">MOC RECORDS</span><h1>작성 이력</h1><p>판단부터 종결까지 모든 변경 이력을 확인할 수 있습니다.</p></div><button className="btn primary">↓ 목록 내보내기</button></div>
-    <section className="filter-card card"><label>통합 검색<input value={filter} onChange={e => onFilter(e.target.value)} placeholder="관리번호, 작업명, 작성자 검색"/></label><label>작업 유형<select><option>전체</option>{workTypes.map(w => <option key={w.label}>{w.label}</option>)}</select></label><label>대상 여부<select><option>전체</option><option>대상</option><option>비대상</option></select></label><label>진행 상태<select><option>전체</option><option>진행 중</option><option>완료</option></select></label></section>
-    <section className="card history-card"><div className="card-head"><div><h2>전체 {shown.length}건</h2><p>최신 작성 순으로 표시됩니다.</p></div><span className="muted">2026. 01. 01 — 2026. 07. 29</span></div><div className="table-wrap"><table><thead><tr><th>관리번호</th><th>작업명</th><th>작업 유형</th><th>대상 여부</th><th>등급</th><th>작성자 / 부서</th><th>작성일</th><th>상태</th><th></th></tr></thead><tbody>{shown.map(c => <tr key={c.id}><td><b>{c.caseNumber}</b></td><td><b>{c.title}</b></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td>{gradeLabel(c)}</td><td>{c.author}<small>{c.department}</small></td><td>{fmt(c.createdAt)}</td><td><Badge tone={c.status === "CLOSED" ? "green" : "blue"}>{statusLabels[c.status]}</Badge></td><td><button className="row-action" onClick={() => onOpen(c)}>상세 보기 →</button></td></tr>)}</tbody></table></div></section>
+function Approvals({ items, onApprove }: { items: MocCase[]; onApprove: (id: string) => void }) {
+  const pending = items.filter((item) => ["SUBMITTED", "UNDER_REVIEW"].includes(item.status));
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
+    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section></div>;
+}
+
+function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onOpen: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [workType, setWorkType] = useState("전체");
+  const [target, setTarget] = useState("전체");
+  const [status, setStatus] = useState("전체");
+  const shown = items.filter(c => {
+    const matchText = [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
+    const matchStart = !startDate || c.createdAt >= startDate;
+    const matchEnd = !endDate || c.createdAt <= endDate;
+    const matchType = workType === "전체" || c.workType === workType;
+    const value = c.judgment ? (c.judgment.isMocTarget ? "대상" : "비대상") : "미판단";
+    const matchTarget = target === "전체" || value === target;
+    const matchStatus = status === "전체" || (status === "완료" ? ["APPROVED", "CLOSED"].includes(c.status) : !["APPROVED", "CLOSED"].includes(c.status));
+    return matchText && matchStart && matchEnd && matchType && matchTarget && matchStatus;
+  });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const toggleSelected = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  const allSelected = shown.length > 0 && shown.every((item) => selectedIds.includes(item.id));
+  const toggleAll = () => setSelectedIds(allSelected ? selectedIds.filter((id) => !shown.some((item) => item.id === id)) : [...new Set([...selectedIds, ...shown.map((item) => item.id)])]);
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">MOC RECORDS</span><h1>작성 이력</h1><p>판단부터 종결까지 모든 변경 이력을 확인할 수 있습니다.</p></div><div className="history-actions"><button className="btn ghost" disabled={selectedIds.length === 0} onClick={() => onRequestDelete(selectedIds)}>이력 삭제</button><button className="btn primary">↓ 목록 내보내기</button></div></div>
+    <section className="filter-card card"><label>통합 검색<input value={filter} onChange={e => onFilter(e.target.value)} placeholder="관리번호, 작업명, 작성자 검색"/></label><label>작성 기간 시작<input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}/></label><label>작성 기간 종료<input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/></label><label>작업 유형<select value={workType} onChange={e => setWorkType(e.target.value)}><option>전체</option>{workTypes.map(w => <option key={w.label}>{w.label}</option>)}</select></label><label>대상 여부<select value={target} onChange={e => setTarget(e.target.value)}><option>전체</option><option>대상</option><option>비대상</option><option>미판단</option></select></label><label>진행 상태<select value={status} onChange={e => setStatus(e.target.value)}><option>전체</option><option>진행 중</option><option>완료</option></select></label></section>
+    <section className="card history-card"><div className="card-head"><div><h2>전체 {shown.length}건</h2><p>최신 작성 순으로 표시됩니다.</p></div><span className="muted">{startDate || "전체 기간"} — {endDate || "오늘"}</span></div><div className="table-wrap"><table><thead><tr><th><input aria-label="현재 목록 전체 선택" type="checkbox" checked={allSelected} onChange={toggleAll}/></th><th>관리번호</th><th>작업명</th><th>작업 유형</th><th>대상 여부</th><th>등급</th><th>작성자 / 부서</th><th>작성일</th><th>상태</th><th></th></tr></thead><tbody>{shown.map(c => <tr key={c.id}><td><input aria-label={`${c.caseNumber} 선택`} type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelected(c.id)}/></td><td><b>{c.caseNumber}</b></td><td><b>{c.title}</b></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td>{gradeLabel(c)}</td><td>{c.author}<small>{c.department}</small></td><td>{fmt(c.createdAt)}</td><td><Badge tone={c.status === "CLOSED" ? "green" : "blue"}>{statusLabels[c.status]}</Badge></td><td><button className="row-action" onClick={() => onOpen(c)}>상세 보기 →</button></td></tr>)}</tbody></table></div></section>
   </div>;
 }
 
-function Admin() {
-  const [tab, setTab] = useState("질문 관리");
-  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">ADMIN · MOCK DATA</span><h1>기준 관리</h1><p>실제 업무지침 제공 시 아래 데이터만 교체할 수 있도록 분리되어 있습니다.</p></div><Badge tone="purple">ADMIN</Badge></div>
-    <div className="admin-tabs">{["질문 관리", "업무지침", "판단 규칙", "사용자"].map(t => <button className={cn(tab === t && "active")} onClick={() => setTab(t)} key={t}>{t}</button>)}</div>
-    <section className="card admin-card"><div className="card-head"><div><h2>{tab}</h2><p>Mock 데이터 · 변경 내용은 다음 판단부터 적용됩니다.</p></div><button className="btn primary">＋ 새 항목</button></div>
-      {tab === "질문 관리" && questions.map(q => <div className="admin-row" key={q.id}><span className="drag">⋮⋮</span><b>{q.order}</b><div><strong>{q.text}</strong><small>{q.category} · {q.guidelineSection}</small></div><Badge tone="green">사용 중</Badge><button>편집</button></div>)}
-      {tab === "업무지침" && guidelines.map(g => <div className="admin-row" key={g.code}><b>{g.code}</b><div><strong>{g.title}</strong><small>{g.content}</small></div><Badge tone="blue">v1.0</Badge><button>편집</button></div>)}
-      {tab === "판단 규칙" && ["동일 규격 비대상", "재질 변경 대상", "운전조건 변경 대상", "위험도 증가 최소 2등급", "중대 변경 1등급", "불확실 답변 검토"].map((x,i) => <div className="admin-row" key={x}><b>R-{String(i+1).padStart(3,"0")}</b><div><strong>{x}</strong><small>우선순위 {10 - i} · JSON 조건/결과 분리</small></div><Badge tone="green">활성</Badge><button>편집</button></div>)}
-      {tab === "사용자" && [["operator01","김현수","생산1팀","USER"],["maint01","박준호","기계정비팀","USER"],["reviewer01","이서연","PSM검토팀","REVIEWER"]].map(u => <div className="admin-row" key={u[0]}><div className="user-avatar">{u[1][0]}</div><div><strong>{u[1]} · {u[0]}</strong><small>{u[2]}</small></div><Badge tone="purple">{u[3]}</Badge><button>편집</button></div>)}
-    </section>
-  </div>;
+function Admin({ items, onChange }: { items: Question[]; onChange: (items: Question[]) => void }) {
+  const [tab, setTab] = useState<"질문 관리" | "업무지침" | "판단 규칙">("질문 관리");
+  const [editing, setEditing] = useState<Question | null>(null);
+  const [workTypeFilter, setWorkTypeFilter] = useState("전체");
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const tabs = ["질문 관리", "업무지침", "판단 규칙"] as const;
+  const sorted = [...items].sort((a, b) => a.order - b.order);
+  const filteredQuestions = sorted.filter((question) => workTypeFilter === "전체" || !question.workTypes?.length || question.workTypes.includes(workTypeFilter as WorkType));
+  const allQuestionsSelected = filteredQuestions.length > 0 && filteredQuestions.every((question) => selectedQuestionIds.includes(question.id));
+  const saveQuestion = (question: Question) => {
+    const exists = items.some((item) => item.id === question.id);
+    onChange((exists ? items.map((item) => item.id === question.id ? question : item) : [...items, question]).sort((a, b) => a.order - b.order).map((item, index) => ({ ...item, order: index + 1 })));
+    setEditing(null);
+  };
+  const move = (id: string, direction: -1 | 1) => {
+    const index = sorted.findIndex((item) => item.id === id); const swap = index + direction;
+    if (swap < 0 || swap >= sorted.length) return;
+    const next = [...sorted]; [next[index], next[swap]] = [next[swap], next[index]];
+    onChange(next.map((item, order) => ({ ...item, order: order + 1 })));
+  };
+  const newQuestion = (): Question => ({ id: `custom-${Date.now()}`, order: items.length + 1, category: "공통", text: "새 질문을 입력해 주세요.", description: "질문에 대한 보충 설명을 입력해 주세요.", guidelineSection: "MOC 업무지침", workTypes: [] });
+  const toggleQuestion = (id: string) => setSelectedQuestionIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  const toggleAllQuestions = () => setSelectedQuestionIds(allQuestionsSelected ? selectedQuestionIds.filter((id) => !filteredQuestions.some((question) => question.id === id)) : [...new Set([...selectedQuestionIds, ...filteredQuestions.map((question) => question.id)])]);
+  const deleteQuestions = () => {
+    if (!selectedQuestionIds.length) return;
+    onChange(items.filter((question) => !selectedQuestionIds.includes(question.id)).map((question, index) => ({ ...question, order: index + 1 })));
+    setSelectedQuestionIds([]);
+  };
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">ADMIN · MOCK DATA</span><h1>기준 관리</h1><p>질문, 업무지침, 판단 규칙을 관리합니다.</p></div><Badge tone="purple">ADMIN</Badge></div><div className="admin-tabs">{tabs.map((item) => <button className={cn(tab === item && "active")} onClick={() => setTab(item)} key={item}>{item}</button>)}</div><section className="card admin-card"><div className="card-head"><div><h2>{tab}</h2><p>질문 변경 내용은 저장 즉시 새 변경 판단에 반영됩니다.</p></div><div className="admin-header-actions">{tab === "질문 관리" && <button className="btn ghost" disabled={!selectedQuestionIds.length} onClick={deleteQuestions}>질문 삭제</button>}<button className="btn primary" onClick={() => tab === "질문 관리" && setEditing(newQuestion())}>＋ 새 항목</button></div></div>{tab === "질문 관리" && <><div className="question-filter"><label>적용 항목<select value={workTypeFilter} onChange={(event) => setWorkTypeFilter(event.target.value)}><option>전체</option>{workTypes.map((item) => <option key={item.label}>{item.label}</option>)}</select></label><span>{filteredQuestions.length}개 질문</span></div><div className="admin-row question-list-head"><input aria-label="표시된 질문 전체 선택" type="checkbox" checked={allQuestionsSelected} onChange={toggleAllQuestions}/><span>순서</span><span>질문 / 적용 항목</span><span>상태</span><span>관리</span></div>{filteredQuestions.map((question) => { const index = sorted.findIndex((item) => item.id === question.id); return <div className="admin-row" key={question.id}><input aria-label={`${question.text} 선택`} type="checkbox" checked={selectedQuestionIds.includes(question.id)} onChange={() => toggleQuestion(question.id)}/><b>{question.order}</b><div><strong>{question.text}</strong><small>{question.category} · {question.workTypes?.join(", ") || "공통"} · {question.guidelineSection}</small></div><Badge tone="green">사용 중</Badge><div className="admin-actions"><button onClick={() => move(question.id, -1)} disabled={index === 0}>↑</button><button onClick={() => move(question.id, 1)} disabled={index === sorted.length - 1}>↓</button><button onClick={() => setEditing(question)}>편집</button></div></div>; })}</>}{tab === "업무지침" && guidelines.map((guideline) => <div className="admin-row" key={guideline.code}><b>{guideline.code}</b><div><strong>{guideline.title}</strong><small>{guideline.content}</small></div><Badge tone="blue">v1.0</Badge><button>편집</button></div>)}{tab === "판단 규칙" && ["동일 규격 비대상", "재질 변경 대상", "운전조건 변경 대상", "위험도 증가 최소 2등급", "중대 변경 1등급", "불확실 답변 검토"].map((rule, index) => <div className="admin-row" key={rule}><b>R-{String(index + 1).padStart(3, "0")}</b><div><strong>{rule}</strong><small>우선순위 {10 - index} · JSON 조건/결과 분리</small></div><Badge tone="green">활성</Badge><button>편집</button></div>)}</section>{editing && <QuestionEditor question={editing} onCancel={() => setEditing(null)} onSave={saveQuestion}/>}</div>;
+}
+
+function QuestionEditor({ question, onCancel, onSave }: { question: Question; onCancel: () => void; onSave: (question: Question) => void }) {
+  const [value, setValue] = useState(question);
+  const toggleWorkType = (workType: WorkType) => setValue((current) => ({ ...current, workTypes: current.workTypes?.includes(workType) ? current.workTypes.filter((item) => item !== workType) : [...(current.workTypes || []), workType] }));
+  return <div className="modal-backdrop"><section className="card question-editor"><div className="card-head"><div><h2>질문 편집</h2><p>적용 항목을 선택하지 않으면 모든 변경 판단에 표시됩니다.</p></div></div><label>질문<input value={value.text} onChange={event => setValue({ ...value, text: event.target.value })}/></label><label>보충 설명<textarea value={value.description} onChange={event => setValue({ ...value, description: event.target.value })}/></label><div className="editor-grid"><label>분류<input value={value.category} onChange={event => setValue({ ...value, category: event.target.value })}/></label><label>지침 조항<input value={value.guidelineSection} onChange={event => setValue({ ...value, guidelineSection: event.target.value })}/></label></div><fieldset><legend>적용 변경 항목</legend><div className="worktype-checks">{workTypes.map((item) => <label key={item.label}><input type="checkbox" checked={value.workTypes?.includes(item.label) || false} onChange={() => toggleWorkType(item.label)}/>{item.label}</label>)}</div></fieldset><div className="modal-actions"><button className="btn ghost" onClick={onCancel}>취소</button><button className="btn primary" disabled={!value.text.trim()} onClick={() => onSave(value)}>저장</button></div></section></div>;
 }
 
 function Badge({ tone, children }: { tone: "red" | "gray" | "blue" | "green" | "amber" | "purple"; children: React.ReactNode }) { return <span className={`badge ${tone}`}>{children}</span>; }

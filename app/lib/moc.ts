@@ -1,3 +1,5 @@
+import { isSite, sites, type Site } from "./sites.ts";
+
 export type AnswerValue = "YES" | "NO" | "UNKNOWN" | "NOT_APPLICABLE";
 export type WorkType = "기계 설비" | "배관" | "전기" | "계장" | "운전조건" | "원료·화학물질" | "작업 절차" | "기타";
 export type MocStatus =
@@ -9,6 +11,8 @@ export type MocStatus =
 export interface Question {
   id: string; order: number; category: string; text: string; description: string;
   guidelineSection: string;
+  /** Empty means this is a common question shown for every work type. */
+  workTypes?: WorkType[];
   visibleWhen?: { questionId: string; operator: "EQUALS" | "NOT_EQUALS"; value: AnswerValue };
 }
 
@@ -31,7 +35,7 @@ export interface Draft {
 
 export interface MocCase {
   id: string; caseNumber: string; title: string; workType: WorkType; author: string;
-  department: string; status: MocStatus; createdAt: string; dueDate: string;
+  department: string; site: Site; status: MocStatus; createdAt: string; dueDate: string;
   answers: Record<string, AnswerValue>; judgment?: Judgment; draft: Draft;
 }
 
@@ -67,8 +71,9 @@ export const guidelines = [
 const evidence = (ruleId: string, title: string, description: string, guidelineSection: string): Evidence =>
   ({ ruleId, title, description, guidelineSection });
 
-export function visibleQuestions(answers: Record<string, AnswerValue>) {
-  return questions.filter((q) => {
+export function visibleQuestions(answers: Record<string, AnswerValue>, list: Question[] = questions, workType?: WorkType) {
+  return list.filter((q) => {
+    if (workType && q.workTypes?.length && !q.workTypes.includes(workType)) return false;
     if (!q.visibleWhen) return true;
     const actual = answers[q.visibleWhen.questionId];
     return q.visibleWhen.operator === "EQUALS" ? actual === q.visibleWhen.value : actual !== q.visibleWhen.value;
@@ -127,13 +132,61 @@ export const emptyDraft = (author = "김현수", department = "생산1팀"): Dra
   drawingRevision: false, procedureRevision: false,
 });
 
-export const seedCases: MocCase[] = [
+const mockCases: Omit<MocCase, "site">[] = [
   { id: "moc-001", caseNumber: "MOC-2026-042", title: "P-204A 메카니컬 씰 교체", workType: "기계 설비", author: "김현수", department: "생산1팀", status: "QUESTIONNAIRE_IN_PROGRESS", createdAt: "2026-07-29", dueDate: "2026-08-02", answers: { same_spec: "YES", capacity: "NO" }, draft: emptyDraft() },
   { id: "moc-002", caseNumber: "MOC-2026-039", title: "T-101 이송배관 재질 변경", workType: "배관", author: "박준호", department: "기계정비팀", status: "DOCUMENT_DRAFTING", createdAt: "2026-07-26", dueDate: "2026-07-28", answers: { same_spec: "NO", material: "YES", operating: "NO", hazard: "YES" }, judgment: judge({ same_spec: "NO", material: "YES", operating: "NO", hazard: "YES" }), draft: { ...emptyDraft("박준호", "기계정비팀"), purpose: "부식 방지", equipment: "T-101 이송배관", before: "CS 배관", after: "STS316L 배관", hazards: "누출 및 화재", safeguards: "가스측정 및 화기감시자 배치" } },
   { id: "moc-003", caseNumber: "MOC-2026-037", title: "반응기 고온 알람 설정 변경", workType: "계장", author: "이서연", department: "전기계장팀", status: "UNDER_REVIEW", createdAt: "2026-07-24", dueDate: "2026-07-31", answers: { same_spec: "NO", logic: "YES", hazard: "UNKNOWN" }, judgment: judge({ same_spec: "NO", logic: "YES", hazard: "UNKNOWN" }), draft: emptyDraft("이서연", "전기계장팀") },
   { id: "moc-004", caseNumber: "MOC-2026-031", title: "냉각수 펌프 동급 교체", workType: "기계 설비", author: "김현수", department: "생산1팀", status: "CLOSED", createdAt: "2026-07-14", dueDate: "2026-07-18", answers: { same_spec: "YES", capacity: "NO", material: "NO", operating: "NO", logic: "NO", hazard: "NO" }, judgment: judge({ same_spec: "YES", capacity: "NO", material: "NO", operating: "NO", logic: "NO", hazard: "NO" }), draft: emptyDraft() },
   { id: "moc-005", caseNumber: "MOC-2026-028", title: "원료 투입 순서 변경", workType: "작업 절차", author: "김현수", department: "생산1팀", status: "CLOSED", createdAt: "2026-07-09", dueDate: "2026-07-13", answers: { same_spec: "NO", operating: "YES", hazard: "YES", major: "YES" }, judgment: judge({ same_spec: "NO", operating: "YES", hazard: "YES", major: "YES" }), draft: emptyDraft() },
 ];
+
+export const seedCases: MocCase[] = mockCases.map((mocCase, index) => ({
+  ...mocCase,
+  site: index % 2 === 0 ? "포항라임공장" : "포항화성공장",
+}));
+
+export function normalizeMocCases(items: unknown, fallbackSite: Site = sites[0]): MocCase[] {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .filter((item): item is Omit<MocCase, "site"> & { site?: unknown } =>
+      typeof item === "object" && item !== null && typeof item.id === "string")
+    .map((item) => ({
+      ...item,
+      site: isSite(typeof item.site === "string" ? item.site : null) ? item.site : fallbackSite,
+    } as MocCase));
+}
+
+export function createMocCase({
+  id,
+  cases,
+  workType,
+  site,
+  createdAt = "2026-07-29",
+  dueDate = "2026-08-05",
+}: {
+  id: string;
+  cases: MocCase[];
+  workType: WorkType;
+  site: Site;
+  createdAt?: string;
+  dueDate?: string;
+}): MocCase {
+  return {
+    id,
+    caseNumber: nextCaseNumber(cases),
+    title: `${workType} 변경`,
+    workType,
+    author: "김현수",
+    department: "생산1팀",
+    site,
+    status: "QUESTIONNAIRE_IN_PROGRESS",
+    createdAt,
+    dueDate,
+    answers: {},
+    draft: emptyDraft(),
+  };
+}
 
 export function nextCaseNumber(cases: MocCase[]) {
   return `MOC-2026-${String(43 + cases.length).padStart(3, "0")}`;
