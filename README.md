@@ -31,6 +31,15 @@ npm test
 npm run build
 ```
 
+## Vercel 시연 배포
+
+공개 Vercel 시연본은 GitHub `main` 브랜치를 연결해 배포합니다. Vercel에서는 `npm run build:vercel`을 사용하며, 화면에서 작성한 이력은 각 사용자의 브라우저에만 저장됩니다.
+
+- 공개 주소는 `프로젝트명.vercel.app` 형식입니다.
+- 실제 D1 데이터베이스, 이메일 발송, 사내 인증은 시연본에 포함하지 않습니다.
+- Vercel의 `GET /api/health/db`는 `Browser-local demo` 상태를 반환합니다.
+- ChatGPT 사이트는 기존 `npm run build` 경로를 그대로 사용합니다.
+
 ## 구현 범위
 
 - 로그인 없이 시작하는 입장 화면과 사업장 선택

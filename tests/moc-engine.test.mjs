@@ -16,11 +16,54 @@ test("database health check uses the Cloudflare D1 binding without Neon", async 
   const route = await readFile(new URL("../app/api/health/db/route.ts", import.meta.url), "utf8");
   const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
 
-  assert.match(route, /import \{ getDb \} from "@\/db"/);
+  assert.match(route, /await import\("@\/db"\)/);
   assert.match(route, /getDb\(\)/);
   assert.doesNotMatch(route, /verifyPostgresConnection|@neondatabase/);
   assert.doesNotMatch(packageJson, /@neondatabase\/serverless/);
   await assert.rejects(access(new URL("../db/postgres.ts", import.meta.url)));
+});
+
+test("Vercel health check reports browser-local demo mode without D1 access", async () => {
+  const route = await readFile(new URL("../app/api/health/db/route.ts", import.meta.url), "utf8");
+
+  assert.match(route, /process\.env\.VERCEL === "1"/);
+  assert.match(route, /database: "Browser-local demo"/);
+});
+
+test("Vercel demo uses a dedicated build command while preserving the Cloudflare build", async () => {
+  const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
+  const vercelConfig = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
+
+  assert.match(packageJson, /"build": "vinext build"/);
+  assert.match(packageJson, /"build:vercel": "next build"/);
+  assert.match(vercelConfig, /"framework": "nextjs"/);
+  assert.match(vercelConfig, /"buildCommand": "npm run build:vercel"/);
+});
+
+test("Vercel demo build does not require downloading Google Fonts", async () => {
+  const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(layout, /next\/font\/google/);
+  assert.doesNotMatch(layout, /Geist_Mono|Geist\(/);
+});
+
+test("Vercel build allows the TypeScript import extensions used by the test runner", async () => {
+  const tsconfig = await readFile(new URL("../tsconfig.json", import.meta.url), "utf8");
+
+  assert.match(tsconfig, /"allowImportingTsExtensions": true/);
+});
+
+test("Vercel build has an isolated declaration for the Cloudflare D1 binding", async () => {
+  const declaration = await readFile(new URL("../types/cloudflare-workers.d.ts", import.meta.url), "utf8");
+
+  assert.match(declaration, /declare module "cloudflare:workers"/);
+  assert.match(declaration, /export const env: \{ DB: any \}/);
+});
+
+test("Vercel type checking excludes the Cloudflare Worker entry point", async () => {
+  const tsconfig = await readFile(new URL("../tsconfig.json", import.meta.url), "utf8");
+
+  assert.match(tsconfig, /"exclude": \["node_modules", "worker"\]/);
 });
 
 test("typography uses the requested Nixgon style and strengthens hierarchy", async () => {

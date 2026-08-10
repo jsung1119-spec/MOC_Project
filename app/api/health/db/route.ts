@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/db";
 
 const healthResponseSchema = z.object({
   ok: z.boolean(),
@@ -11,7 +10,17 @@ const healthResponseSchema = z.object({
 });
 
 export async function GET() {
+  if (process.env.VERCEL === "1") {
+    const body = healthResponseSchema.parse({
+      ok: true,
+      database: "Browser-local demo",
+      connectedAt: new Date().toISOString(),
+    });
+    return NextResponse.json(body);
+  }
+
   try {
+    const { getDb } = await import("@/db");
     await getDb().run(sql`SELECT 1`);
     const body = healthResponseSchema.parse({
       ok: true,
