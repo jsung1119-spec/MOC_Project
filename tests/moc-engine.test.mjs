@@ -54,7 +54,8 @@ test("admin password prompt omits the obsolete heading", async () => {
 
 test("return to entry clears access and site selection while preserving work history", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const returnBlock = page.match(/function returnToEntry\(\)[\s\S]*?\n  }\n  function enterApplication/)?.[0] ?? "";
+  const normalizedPage = page.replaceAll("\r\n", "\n");
+  const returnBlock = normalizedPage.match(/function returnToEntry\(\)[\s\S]*?\n  }\n  function enterApplication/)?.[0] ?? "";
 
   assert.match(returnBlock, /setSelectedSite\(null\)/);
   assert.match(returnBlock, /localStorage\.removeItem\("safechange-selected-site"\)/);
@@ -91,7 +92,8 @@ test("browser back, history deletion, and approval use the shared administrator 
 
 test("completed judgments move directly into the approval queue", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const judgmentBlock = page.match(/function runJudgment\(\)[\s\S]*?\n  }\n\n  if \(!hydrated\)/)?.[0] ?? "";
+  const normalizedPage = page.replaceAll("\r\n", "\n");
+  const judgmentBlock = normalizedPage.match(/function runJudgment\(\)[\s\S]*?\n  }\n\n  if \(!hydrated\)/)?.[0] ?? "";
 
   assert.match(judgmentBlock, /status: "SUBMITTED"/);
   assert.match(judgmentBlock, /go\("approvals"\)/);
