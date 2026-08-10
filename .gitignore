@@ -48,3 +48,4 @@ next-env.d.ts
 /.chrome-*/
 /.edge-*/
 /.sites-git/
+/.worktrees/
