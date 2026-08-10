@@ -65,6 +65,15 @@ test("return to entry clears access and site selection while preserving work his
   assert.match(page, /const reminders = remindersForCases\(siteCases\)/);
 });
 
+test("homepage never restores a previously selected business site", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const hydrationBlock = page.match(/const saved = localStorage\.getItem\("safechange-cases"\);[\s\S]*?finally \{ setHydrated\(true\); \}/)?.[0] ?? "";
+
+  assert.match(hydrationBlock, /localStorage\.removeItem\("safechange-selected-site"\)/);
+  assert.doesNotMatch(hydrationBlock, /setSelectedSite/);
+  assert.doesNotMatch(page, /localStorage\.setItem\("safechange-selected-site"/);
+});
+
 test("browser back, history deletion, and approval use the shared administrator workflow", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 

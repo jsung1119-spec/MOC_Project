@@ -59,11 +59,10 @@ export default function Home() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("safechange-cases");
-      const savedSite = localStorage.getItem("safechange-selected-site");
       const savedQuestions = localStorage.getItem("safechange-questions");
       if (saved) setCases(normalizeMocCases(JSON.parse(saved)).filter((item) => !LEGACY_SAMPLE_CASE_IDS.has(item.id)));
       if (savedQuestions) setQuestionList(JSON.parse(savedQuestions));
-      if (isSite(savedSite)) setSelectedSite(savedSite);
+      localStorage.removeItem("safechange-selected-site");
     } finally { setHydrated(true); }
   }, []);
   useEffect(() => {
@@ -75,10 +74,6 @@ export default function Home() {
     localStorage.setItem("safechange-questions", JSON.stringify(questionList));
   }, [questionList, entered, hydrated]);
 
-  useEffect(() => {
-    if (!hydrated || !entered || !selectedSite) return;
-    localStorage.setItem("safechange-selected-site", selectedSite);
-  }, [entered, selectedSite, hydrated]);
   useEffect(() => {
     const onPopState = () => returnToEntry();
     window.addEventListener("popstate", onPopState);
