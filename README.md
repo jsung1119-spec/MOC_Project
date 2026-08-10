@@ -59,7 +59,7 @@ npm run build
 
 현재 브라우저 MVP는 선택한 사업장 정보와 답변·초안을 기기 로컬 저장소에 보관해 새로고침 후 이어쓰기를 지원합니다. 배포 설정에는 Cloudflare D1 논리 바인딩과 전체 관계형 스키마가 포함되어 있습니다. 운영 전 `db/schema.ts`를 기준으로 서버 Route Handler/Repository를 연결하고, 사내 사업장 마스터·조직 정보·업무 시스템 연계를 적용해야 합니다.
 
-PostgreSQL(Neon) 연결은 `.env`의 `DATABASE_URL`을 사용합니다. 연결 상태는 `GET /api/health/db` 또는 `npm run db:check`로 확인할 수 있으며, 연결 문자열은 응답이나 로그에 노출하지 않습니다.
+데이터베이스는 Cloudflare D1(SQLite) 바인딩 `DB`를 사용합니다. 연결 상태는 `GET /api/health/db`로 확인할 수 있으며, D1 바인딩은 배포 환경에서 제공됩니다.
 
 초기 PSM MOC 테이블은 `npm run db:migrate`로 생성합니다. 마이그레이션 이력이 `app_migrations`에 기록되므로 같은 명령을 반복 실행해도 안전합니다.
 

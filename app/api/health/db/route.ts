@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { verifyPostgresConnection } from "@/db/postgres";
+import { getDb } from "@/db";
 
 const healthResponseSchema = z.object({
   ok: z.boolean(),
@@ -11,11 +12,11 @@ const healthResponseSchema = z.object({
 
 export async function GET() {
   try {
-    const connection = await verifyPostgresConnection();
+    await getDb().run(sql`SELECT 1`);
     const body = healthResponseSchema.parse({
       ok: true,
-      database: connection.database_name,
-      connectedAt: connection.connected_at,
+      database: "Cloudflare D1",
+      connectedAt: new Date().toISOString(),
     });
     return NextResponse.json(body);
   } catch (error) {

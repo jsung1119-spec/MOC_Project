@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 import { createMocCase, judge, normalizeMocCases, visibleQuestions } from "../app/lib/moc.ts";
 import { casesForSite, isSite, remindersForCases, sites } from "../app/lib/sites.ts";
@@ -10,6 +10,17 @@ test("application starts without sample cases and excludes legacy sample history
   assert.match(page, /useState<MocCase\[\]>\(\[\]\)/);
   assert.match(page, /LEGACY_SAMPLE_CASE_IDS/);
   assert.match(page, /filter\(\(item\) => !LEGACY_SAMPLE_CASE_IDS\.has\(item\.id\)\)/);
+});
+
+test("database health check uses the Cloudflare D1 binding without Neon", async () => {
+  const route = await readFile(new URL("../app/api/health/db/route.ts", import.meta.url), "utf8");
+  const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
+
+  assert.match(route, /import \{ getDb \} from "@\/db"/);
+  assert.match(route, /getDb\(\)/);
+  assert.doesNotMatch(route, /verifyPostgresConnection|@neondatabase/);
+  assert.doesNotMatch(packageJson, /@neondatabase\/serverless/);
+  await assert.rejects(access(new URL("../db/postgres.ts", import.meta.url)));
 });
 
 test("typography uses the requested Nixgon style and strengthens hierarchy", async () => {
