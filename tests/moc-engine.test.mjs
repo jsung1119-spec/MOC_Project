@@ -169,7 +169,8 @@ test("approval navigation reuses the Reminder badge and opens work details", asy
   assert.match(approvalBlock, /const \[selectedCase, setSelectedCase\] = useState<MocCase \| null>\(null\)/);
   assert.match(approvalBlock, /onClick=\{\(\) => setSelectedCase\(item\)\}/);
   assert.match(approvalBlock, /전체 질문과 답변/);
-  assert.match(approvalBlock, /optionMeta\[selectedCase\.answers\[question\.id\] \?\? "NOT_APPLICABLE"\]\.label/);
+  assert.match(approvalBlock, /Object\.entries\(selectedCase\.answers\)/);
+  assert.match(approvalBlock, /optionMeta\[answer\]\.label/);
 });
 
 test("history deletion supports selecting multiple cases and progress does not expose manual advancement", async () => {
