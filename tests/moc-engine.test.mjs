@@ -133,15 +133,23 @@ test("browser back, history deletion, and approval use the shared administrator 
   assert.match(page, /승인하기/);
 });
 
-test("completed judgments move directly into the approval queue", async () => {
+test("completed judgments remain on the result screen and enter the approval queue", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const normalizedPage = page.replaceAll("\r\n", "\n");
   const judgmentBlock = normalizedPage.match(/function runJudgment\(\)[\s\S]*?\n  }\n\n  if \(!hydrated\)/)?.[0] ?? "";
 
-  assert.match(judgmentBlock, /status: "SUBMITTED"/);
-  assert.match(judgmentBlock, /go\("approvals"\)/);
-  assert.match(page, /\["SUBMITTED", "UNDER_REVIEW"\]\.includes\(item\.status\)/);
+  assert.match(judgmentBlock, /status: "JUDGMENT_COMPLETED"/);
+  assert.doesNotMatch(judgmentBlock, /go\("approvals"\)/);
+  assert.match(page, /\["JUDGMENT_COMPLETED", "SUBMITTED", "UNDER_REVIEW"\]/);
   assert.match(page, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
+});
+
+test("approval navigation shows a selected-site pending count badge", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /const approvalPendingCount = siteCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\)\)\.length;/);
+  assert.match(page, /approvalPendingCount > 0 && <span className="nav-count">\{approvalPendingCount\}<\/span>/);
+  assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
 });
 
 test("history deletion supports selecting multiple cases and progress does not expose manual advancement", async () => {

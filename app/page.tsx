@@ -28,6 +28,7 @@ const flow: { key: MocStatus; label: string; help: string }[] = [
   { key: "WORK_COMPLETED", label: "작업 완료 확인", help: "완료 확인서" },
   { key: "CLOSED", label: "최종 종결", help: "기록 보존" },
 ];
+const approvalPendingStatuses: MocStatus[] = ["JUDGMENT_COMPLETED", "SUBMITTED", "UNDER_REVIEW"];
 
 function cn(...parts: (string | false | null | undefined)[]) { return parts.filter(Boolean).join(" "); }
 function fmt(date: string) { return date ? date.replaceAll("-", ". ") : "-"; }
@@ -84,6 +85,7 @@ export default function Home() {
   const active = siteCases.find(c => c.id === activeId);
   const activeQuestions = active ? visibleQuestions(active.answers, questionList, active.workType) : questionList;
   const reminders = remindersForCases(siteCases);
+  const approvalPendingCount = siteCases.filter(c => approvalPendingStatuses.includes(c.status)).length;
 
   function notify(message: string) { setToast(message); setTimeout(() => setToast(""), 2600); }
   function updateCase(patch: Partial<MocCase>) {
@@ -173,8 +175,8 @@ export default function Home() {
   function runJudgment() {
     if (!active) return;
     const result = judge(active.answers);
-    updateCase({ judgment: result, status: "SUBMITTED" });
-    go("approvals");
+    updateCase({ judgment: result, status: "JUDGMENT_COMPLETED" });
+    go("result");
   }
 
   if (!hydrated) return <div className="loading">SafeChange를 준비하고 있습니다…</div>;
@@ -196,7 +198,7 @@ export default function Home() {
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} site={selectedSite} reminderCount={reminders.length} onSelectSite={selectSite} onGo={requestView} />
+      <Sidebar view={view} site={selectedSite} reminderCount={reminders.length} approvalPendingCount={approvalPendingCount} onSelectSite={selectSite} onGo={requestView} />
       <div className="app-main">
         <Header view={view} site={selectedSite} onReturnToEntry={returnToEntry} />
         <main className="content">{selectedSite ? main : <SiteSelectionPrompt />}</main>
@@ -219,9 +221,9 @@ function SiteSelectionPrompt() {
   return <section className="site-selection-prompt"><span>⌖</span><h1>사업장을 선택해 주세요</h1><p>좌측 상단에서 업무를 진행할 사업장을 선택하면 해당 공장 기준으로 MOC 업무를 관리할 수 있습니다.</p></section>;
 }
 
-function Sidebar({ view, site, reminderCount, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
+function Sidebar({ view, site, reminderCount, approvalPendingCount, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; approvalPendingCount: number; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
   const nav: { key: View; icon: string; label: string }[] = [{ key: "dashboard", icon: "⌂", label: "대시보드" }, { key: "new", icon: "＋", label: "새 변경 판단" }, { key: "history", icon: "▤", label: "작성 이력" }, { key: "reminders", icon: "♧", label: "Reminder" }, { key: "approvals", icon: "✓", label: "검토/승인" }, { key: "admin", icon: "⚙", label: "기준 관리" }];
-  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && <em>{reminderCount}</em>}</button>)}</nav></aside>;
+  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && <em>{reminderCount}</em>}{item.key === "approvals" && approvalPendingCount > 0 && <span className="nav-count">{approvalPendingCount}</span>}</button>)}</nav></aside>;
 }
 
 function AdminPasswordPrompt({ mode, onCancel, onAuthorize }: { mode: AdminPromptMode; onCancel: () => void; onAuthorize: () => void }) {
@@ -379,7 +381,7 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
 }
 
 function Approvals({ items, onApprove }: { items: MocCase[]; onApprove: (id: string) => void }) {
-  const pending = items.filter((item) => ["SUBMITTED", "UNDER_REVIEW"].includes(item.status));
+  const pending = items.filter(c => approvalPendingStatuses.includes(c.status));
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
     <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section></div>;
 }
