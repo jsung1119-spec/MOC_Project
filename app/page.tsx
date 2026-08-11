@@ -155,13 +155,13 @@ export default function Home() {
     setCases((current) => current.map((item) => item.id === id ? { ...item, status: "APPROVED" } : item));
     notify("공장장/리더 승인 처리가 완료되었습니다.");
   }
-  function startCase(type: WorkType) {
+  function startCase(type: WorkType, title: string) {
     if (!selectedSite) {
       notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
       return;
     }
     const id = `moc-${Date.now()}`;
-    const item = createMocCase({ id, cases, workType: type, site: selectedSite });
+    const item = { ...createMocCase({ id, cases, workType: type, site: selectedSite }), title: title.trim() };
     setCases(prev => [item, ...prev]); setActiveId(id); setQuestionIndex(0); go("question");
   }
   function answer(value: AnswerValue) {
@@ -193,7 +193,7 @@ export default function Home() {
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
     : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={(c) => { setActiveId(c.id); go(c.judgment ? "draft" : "question"); }} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
     : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onOpen={(c) => { setActiveId(c.id); go("progress"); }} onRequestDelete={requestHistoryDeletion} />
-    : view === "approvals" ? <Approvals items={siteCases} onApprove={approveCase} />
+    : view === "approvals" ? <Approvals items={siteCases} list={questionList} onApprove={approveCase} />
     : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
 
   return (
@@ -223,7 +223,7 @@ function SiteSelectionPrompt() {
 
 function Sidebar({ view, site, reminderCount, approvalPendingCount, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; approvalPendingCount: number; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
   const nav: { key: View; icon: string; label: string }[] = [{ key: "dashboard", icon: "⌂", label: "대시보드" }, { key: "new", icon: "＋", label: "새 변경 판단" }, { key: "history", icon: "▤", label: "작성 이력" }, { key: "reminders", icon: "♧", label: "Reminder" }, { key: "approvals", icon: "✓", label: "검토/승인" }, { key: "admin", icon: "⚙", label: "기준 관리" }];
-  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && <em>{reminderCount}</em>}{item.key === "approvals" && approvalPendingCount > 0 && <span className="nav-count">{approvalPendingCount}</span>}</button>)}</nav></aside>;
+  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && <em>{reminderCount}</em>}{item.key === "approvals" && approvalPendingCount > 0 && <em>{approvalPendingCount}</em>}</button>)}</nav></aside>;
 }
 
 function AdminPasswordPrompt({ mode, onCancel, onAuthorize }: { mode: AdminPromptMode; onCancel: () => void; onAuthorize: () => void }) {
@@ -277,12 +277,14 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
   </div>;
 }
 
-function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType) => void; onBack: () => void }) {
+function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {
   const [selected, setSelected] = useState<WorkType | null>(null);
+  const [title, setTitle] = useState("");
   return <div className="focused-page"><StepHeader current={1} total={4} title="변경 항목 선택" onHome={onBack}/>
     <section className="question-card start-card"><span className="eyebrow">STEP 01</span><h1>어떤 항목을 변경하려고 하나요?</h1><p>가장 가까운 작업 유형 하나를 선택해 주세요. 선택에 따라 맞춤 질문을 안내합니다.</p>
+      <label className="field"><span>작업명</span><input value={title} onChange={event => setTitle(event.target.value)} placeholder="예: T-101 이송배관 재질 변경" /><small>작업 내용을 알아보기 쉬운 이름으로 입력해 주세요.</small></label>
       <div className="worktype-grid">{workTypes.map(w => <button key={w.label} onClick={() => setSelected(w.label)} className={cn(selected === w.label && "selected")}><i>{w.icon}</i><div><b>{w.label}</b><small>{w.detail}</small></div><span>{selected === w.label ? "✓" : "›"}</span></button>)}</div>
-      <div className="question-footer"><button className="btn ghost" onClick={onBack}>← 이전</button><button className="btn primary" disabled={!selected} onClick={() => selected && onSelect(selected)}>다음 단계 →</button></div>
+      <div className="question-footer"><button className="btn ghost" onClick={onBack}>← 이전</button><button className="btn primary" disabled={!selected || !title.trim()} onClick={() => selected && onSelect(selected, title)}>다음 단계 →</button></div>
     </section></div>;
 }
 
@@ -380,10 +382,12 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
   </div>;
 }
 
-function Approvals({ items, onApprove }: { items: MocCase[]; onApprove: (id: string) => void }) {
+function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Question[]; onApprove: (id: string) => void }) {
   const pending = items.filter(c => approvalPendingStatuses.includes(c.status));
+  const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
-    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section></div>;
+    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
+    {selectedCase && <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{selectedCase.title}</h2><p>{selectedCase.caseNumber} · {selectedCase.workType} · 작성자 {selectedCase.author}</p></div><button className="btn ghost" onClick={() => setSelectedCase(null)}>닫기</button></div><div className="detail-summary"><span>대상 여부<b>{selectedCase.judgment?.isMocTarget ? "대상" : "비대상"}</b></span><span>등급<b>{gradeLabel(selectedCase)}</b></span><span>위험도<b>{selectedCase.judgment?.riskLevel ?? "판단 중"}</b></span></div><h3>판단 근거</h3><ul className="evidence-list">{selectedCase.judgment?.evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>)}</ul><h3>전체 질문과 답변</h3><ul className="answer-detail-list">{list.filter(question => question.workTypes?.length === 0 || question.workTypes?.includes(selectedCase.workType)).map(question => <li key={question.id}><span>{question.text}</span><b>{optionMeta[selectedCase.answers[question.id] ?? "NOT_APPLICABLE"].label}</b></li>)}</ul></section>}</div>;
 }
 
 function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onOpen: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {

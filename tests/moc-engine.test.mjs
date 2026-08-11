@@ -148,8 +148,28 @@ test("approval navigation shows a selected-site pending count badge", async () =
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
   assert.match(page, /const approvalPendingCount = siteCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\)\)\.length;/);
-  assert.match(page, /approvalPendingCount > 0 && <span className="nav-count">\{approvalPendingCount\}<\/span>/);
+  assert.match(page, /approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
+});
+
+test("new MOC cases require and persist a user-provided work title", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /function startCase\(type: WorkType, title: string\)/);
+  assert.match(page, /createMocCase\(\{ id, cases, workType: type, site: selectedSite \}\).*title: title\.trim\(\)/s);
+  assert.match(page, /const \[title, setTitle\] = useState\(""\)/);
+  assert.match(page, /disabled=\{!selected \|\| !title\.trim\(\)\}/);
+});
+
+test("approval navigation reuses the Reminder badge and opens work details", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const approvalBlock = page.match(/function Approvals[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
+
+  assert.match(page, /item\.key === "approvals" && approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
+  assert.match(approvalBlock, /const \[selectedCase, setSelectedCase\] = useState<MocCase \| null>\(null\)/);
+  assert.match(approvalBlock, /onClick=\{\(\) => setSelectedCase\(item\)\}/);
+  assert.match(approvalBlock, /전체 질문과 답변/);
+  assert.match(approvalBlock, /optionMeta\[selectedCase\.answers\[question\.id\] \?\? "NOT_APPLICABLE"\]\.label/);
 });
 
 test("history deletion supports selecting multiple cases and progress does not expose manual advancement", async () => {
