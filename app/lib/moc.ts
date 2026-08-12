@@ -1,4 +1,10 @@
 import { isSite, sites, type Site } from "./sites.ts";
+import type { AssetType } from "./moc/replacement-criteria.ts";
+import type {
+  ApprovalRecord, ChecklistRecord, CommitteeRecord, GradeDecision, MocBasicInfo,
+  MocWorkflowStatus, PreStartupInspection, ProcessSafetyDocumentRecord,
+  ReplacementDecision, TrainingRecord,
+} from "./moc/types.ts";
 
 export * from "./moc/types.ts";
 export { createEmptyMocCase } from "./moc/defaults.ts";
@@ -49,6 +55,25 @@ export interface MocCase {
   id: string; caseNumber: string; title: string; workType: WorkType; author: string;
   department: string; site: Site; status: MocStatus; createdAt: string; dueDate: string;
   answers: Record<string, AnswerValue>; judgment?: Judgment; draft: Draft;
+  schemaVersion?: 2;
+  basicInfo?: MocBasicInfo;
+  guidelineAssetType?: AssetType;
+  replacementDecision?: ReplacementDecision;
+  gradeDecision?: GradeDecision;
+  approval?: ApprovalRecord;
+  committee?: CommitteeRecord;
+  implementationPlan?: ChecklistRecord[];
+  reviewItems?: ChecklistRecord[];
+  processSafetyDocuments?: ProcessSafetyDocumentRecord[];
+  training?: { records: TrainingRecord[] };
+  preStartupInspection?: PreStartupInspection;
+  workCompleted?: boolean;
+  emergencyPostReviewCompleted?: boolean;
+  temporaryTechnicalReviewCompleted?: boolean;
+  temporaryRiskAssessmentCompleted?: boolean;
+  temporarySiteTagInstalled?: boolean;
+  temporaryRestored?: boolean;
+  workflow?: { status: MocWorkflowStatus };
 }
 
 export const questions: Question[] = [

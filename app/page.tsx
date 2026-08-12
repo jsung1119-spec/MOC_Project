@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from "react";
 import {
-  AnswerValue, Draft, MocCase, MocStatus, Question, WorkType, createMocCase, guidelines, judge,
-  normalizeMocCases, optionMeta, questions, statusLabels, visibleQuestions,
+  AnswerValue, Draft, MocBasicInfo, MocCase, MocStatus, Question, WorkType, createEmptyMocCase,
+  cloneImplementationPlan, cloneProcessSafetyDocuments, cloneReviewItems, createMocCase,
+  deriveWorkflowStatus, guidelines, judge, normalizeMocCases, optionMeta, questions, statusLabels,
+  visibleQuestions,
 } from "./lib/moc";
 import { casesForSite, isSite, remindersForCases, Site, sites } from "./lib/sites";
+import { criteriaForAsset, type AssetType } from "./lib/moc/replacement-criteria";
+import type { GradeRecommendation } from "./lib/moc/grade-engine";
+import { gradeRules } from "./lib/moc/grade-rules";
+import type { ReplacementJudgmentResult } from "./lib/moc/replacement-engine";
+import type { ComparisonValue, MocCaseV2 } from "./lib/moc/types";
+import { NewMocCaseForm } from "./components/moc/NewMocCaseForm";
+import { ReplacementQuestionnaire } from "./components/moc/ReplacementQuestionnaire";
+import { GradeQuestionnaire } from "./components/moc/GradeQuestionnaire";
+import { MocDecisionResult } from "./components/moc/MocDecisionResult";
+import { MocProcessWorkspace } from "./components/moc/MocProcessWorkspace";
 
-type View = "dashboard" | "new" | "question" | "review" | "result" | "documents" | "draft" | "preview" | "progress" | "reminders" | "history" | "approvals" | "admin";
+type View = "dashboard" | "new" | "replacement" | "grade" | "guideline_result" | "process" | "question" | "review" | "result" | "documents" | "draft" | "preview" | "progress" | "reminders" | "history" | "approvals" | "admin";
 type AdminPromptMode = "access" | "delete-history";
 const ADMIN_PASSWORD = "0000";
 const LEGACY_SAMPLE_CASE_IDS = new Set(["moc-001", "moc-002", "moc-003", "moc-004", "moc-005"]);
@@ -85,12 +97,26 @@ export default function Home() {
   const active = siteCases.find(c => c.id === activeId);
   const activeQuestions = active ? visibleQuestions(active.answers, questionList, active.workType) : questionList;
   const reminders = remindersForCases(siteCases);
-  const approvalPendingCount = siteCases.filter(c => approvalPendingStatuses.includes(c.status)).length;
+  const approvalPendingCount = siteCases.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT").length;
 
   function notify(message: string) { setToast(message); setTimeout(() => setToast(""), 2600); }
   function updateCase(patch: Partial<MocCase>) {
     setSaveState("saving");
     setCases(prev => prev.map(c => c.id === activeId ? { ...c, ...patch } : c));
+    setTimeout(() => setSaveState("saved"), 480);
+  }
+  function updateGuidelineCase(patch: Partial<MocCase>) {
+    setSaveState("saving");
+    setCases((current) => current.map((item) => {
+      if (item.id !== activeId) return item;
+      const merged = { ...item, ...patch } as MocCase;
+      if (merged.schemaVersion === 2) {
+        const status = deriveWorkflowStatus(merged as unknown as MocCaseV2);
+        merged.workflow = { status };
+        merged.status = status === "COMPLETED" ? "CLOSED" : status === "APPROVED" ? "APPROVED" : status === "IMPLEMENTING" ? "WORK_IN_PROGRESS" : status === "PRE_STARTUP_CHECK" || status === "CORRECTIVE_ACTION" ? "WORK_COMPLETED" : status === "COMMITTEE_REVIEW" || status === "APPROVAL_PENDING" ? "UNDER_REVIEW" : "JUDGMENT_COMPLETED";
+      }
+      return merged;
+    }));
     setTimeout(() => setSaveState("saved"), 480);
   }
   function go(next: View) { setView(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
@@ -152,8 +178,107 @@ export default function Home() {
     setAdminPromptMode("access");
   }
   function approveCase(id: string) {
-    setCases((current) => current.map((item) => item.id === id ? { ...item, status: "APPROVED" } : item));
+    setCases((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      if (item.schemaVersion !== 2) return { ...item, status: "APPROVED" };
+      const grade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
+      if ((grade === "1" || grade === "2") && item.committee?.decision !== "APPROVED") return item;
+      const merged = { ...item, approval: { approved: true, approverRole: grade === "3" ? "설비운전파트장" : "설비운영부서장", approverName: "공장장/리더", approvedAt: new Date().toISOString() } } as MocCase;
+      merged.workflow = { status: deriveWorkflowStatus(merged as unknown as MocCaseV2) };
+      merged.status = "APPROVED";
+      return merged;
+    }));
     notify("공장장/리더 승인 처리가 완료되었습니다.");
+  }
+  function startGuidelineCase(info: MocBasicInfo, assetType: AssetType) {
+    if (!selectedSite) return notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
+    const id = `moc-${Date.now()}`;
+    const legacy = createMocCase({ id, cases, workType: info.workType, site: selectedSite });
+    const domain = createEmptyMocCase({
+      id,
+      caseNumber: legacy.caseNumber,
+      title: info.title,
+      workType: info.workType,
+      site: selectedSite,
+      author: legacy.author,
+      department: legacy.department,
+      createdAt: legacy.createdAt,
+      dueDate: info.duration === "TEMPORARY" ? info.temporaryEndDate ?? legacy.dueDate : legacy.dueDate,
+    });
+    const item: MocCase = {
+      ...legacy,
+      ...domain,
+      title: info.title,
+      workType: info.workType,
+      status: "QUESTIONNAIRE_IN_PROGRESS",
+      answers: {},
+      judgment: legacy.judgment,
+      draft: legacy.draft,
+      basicInfo: info,
+      guidelineAssetType: assetType,
+      implementationPlan: cloneImplementationPlan(),
+      reviewItems: cloneReviewItems(),
+      processSafetyDocuments: cloneProcessSafetyDocuments(),
+      training: { records: [
+        { id: "training-operator", audience: "OPERATOR", content: "", attendees: [], required: true, completed: false },
+        { id: "training-maintenance", audience: "MAINTENANCE", content: "", attendees: [], required: true, completed: false },
+        { id: "training-contractor", audience: "CONTRACTOR", content: "", attendees: [], required: false, completed: false },
+      ] },
+      workflow: { status: "JUDGMENT_PENDING" },
+    };
+    setCases((current) => [item, ...current]);
+    setActiveId(id);
+    go("replacement");
+  }
+  function runGuidelineReplacement(result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) {
+    if (!active) return;
+    const replacementDecision = {
+      ...result,
+      assetType: active.guidelineAssetType,
+      comparisons,
+      decidedAt: new Date().toISOString(),
+    };
+    const legacyJudgment = {
+      isMocTarget: result.result !== "SIMPLE_REPLACEMENT",
+      grade: "NONE" as const,
+      riskLevel: result.result === "UNDETERMINED" ? "REVIEW_REQUIRED" as const : "LOW" as const,
+      evidences: result.matchedCriteria,
+      requiredDocumentIds: [],
+      requiresHumanReview: result.requiresCommittee,
+      summary: result.reasons.join(" "),
+      conflicts: [],
+    };
+    updateCase({
+      replacementDecision,
+      judgment: legacyJudgment,
+      status: "JUDGMENT_COMPLETED",
+      workflow: { status: result.result === "SIMPLE_REPLACEMENT" ? "SIMPLE_REPLACEMENT" : result.result === "CHANGE" ? "GRADE_PENDING" : "COMMITTEE_REVIEW" },
+    });
+    go(result.result === "CHANGE" ? "grade" : "guideline_result");
+  }
+  function runGuidelineGrade(result: GradeRecommendation, gradeAnswers: Record<string, "YES" | "NO" | "UNKNOWN">) {
+    if (!active) return;
+    const recommended = result.recommendedGrade;
+    const requiredDocumentIds = recommended === "1" || recommended === "2"
+      ? ["변경 요청/승인서", "변경관리 실시 계획서", "공정위험성평가", "변경 검토사항", "교육 결과", "가동전 점검 결과"]
+      : recommended === "3" ? ["변경 요청/승인서", "변경관리 실시 계획서", "Check List 위험성평가", "가동전 점검 결과"] : [];
+    updateCase({
+      gradeDecision: { ...result, decidedAt: new Date().toISOString() },
+      answers: gradeAnswers as unknown as Record<string, AnswerValue>,
+      judgment: {
+        isMocTarget: true,
+        grade: recommended === "UNDETERMINED" ? "NONE" : recommended,
+        riskLevel: recommended === "1" ? "HIGH" : recommended === "2" ? "MEDIUM" : recommended === "UNDETERMINED" ? "REVIEW_REQUIRED" : "LOW",
+        evidences: result.matchedRules,
+        requiredDocumentIds,
+        requiresHumanReview: result.requiresCommittee,
+        summary: result.reasons.join(" "),
+        conflicts: [],
+      },
+      status: "JUDGMENT_COMPLETED",
+      workflow: { status: result.requiresCommittee ? "COMMITTEE_REVIEW" : "APPROVAL_PENDING" },
+    });
+    go("guideline_result");
   }
   function startCase(type: WorkType, title: string) {
     if (!selectedSite) {
@@ -182,8 +307,12 @@ export default function Home() {
   if (!hydrated) return <div className="loading">SafeChange를 준비하고 있습니다…</div>;
   if (!entered) return <EntryScreen onEnter={enterApplication} />;
 
-  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v = "progress") => { setActiveId(c.id); go(v); }} onReminder={() => go("reminders")} onHistory={() => go("history")} />
-    : view === "new" ? <NewCase onSelect={startCase} onBack={() => go("dashboard")} />
+  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={() => go("history")} />
+    : view === "new" ? <NewMocCaseForm onSubmit={startGuidelineCase} onBack={() => go("dashboard")} />
+    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onBack={() => go("new")} />
+    : view === "grade" && active ? <GradeQuestionnaire workType={active.workType} onComplete={runGuidelineGrade} onBack={() => go("replacement")} />
+    : view === "guideline_result" && active ? <MocDecisionResult item={active} onEdit={() => go("replacement")} onProcess={() => go("process")} onDashboard={() => go("dashboard")} />
+    : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onChange={updateGuidelineCase} onBack={() => go("guideline_result")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
     : view === "review" && active ? <Review item={active} list={activeQuestions} onEdit={(i) => { setQuestionIndex(i); go("question"); }} onBack={() => go("question")} onJudge={runJudgment} />
     : view === "result" && active ? <Result item={active} onEdit={() => go("review")} onDocs={() => go("documents")} onPrint={() => go("preview")} onReview={() => { updateCase({ status: "SUBMITTED" }); notify("담당자 검토 요청을 기록했습니다."); }} />
@@ -191,8 +320,8 @@ export default function Home() {
     : view === "draft" && active ? <DraftForm item={active} saveState={saveState} onChange={(draft) => updateCase({ draft, title: draft.equipment || active.title, dueDate: draft.endDate || active.dueDate, status: "DOCUMENT_DRAFTING" })} onPreview={() => go("preview")} onBack={() => go("documents")} />
     : view === "preview" && active ? <Preview item={active} onEdit={() => go("draft")} onSubmit={() => { updateCase({ status: "SUBMITTED" }); notify("검토 담당자에게 제출되었습니다."); }} />
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
-    : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={(c) => { setActiveId(c.id); go(c.judgment ? "draft" : "question"); }} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
-    : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onOpen={(c) => { setActiveId(c.id); go("progress"); }} onRequestDelete={requestHistoryDeletion} />
+    : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={(c) => { setActiveId(c.id); go(c.schemaVersion === 2 ? "process" : c.judgment ? "draft" : "question"); }} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
+    : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onOpen={(item) => { setActiveId(item.id); go(item.schemaVersion === 2 ? "process" : "progress"); }} onRequestDelete={requestHistoryDeletion} />
     : view === "approvals" ? <Approvals items={siteCases} list={questionList} onApprove={approveCase} />
     : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
 
@@ -362,7 +491,7 @@ function Preview({ item, onEdit, onSubmit }: { item: MocCase; onEdit: () => void
       <h2 className="paper-heading">3. 위험요인 및 안전조치</h2><div className="paper-columns"><div><b>예상 위험요인</b><p>{d.hazards || "미입력"}</p></div><div><b>안전조치</b><p>{d.safeguards || "미입력"}</p></div></div>
       <h2 className="paper-heading">4. 필요 서류</h2><div className="paper-docs">{j.requiredDocumentIds.map(x => <span key={x}>□ {x}</span>)}</div>
       <div className="signatures"><span><b>작성</b><i>{d.author}</i></span><span><b>검토</b><i>서명</i></span><span><b>승인</b><i>서명</i></span></div>
-      <p className="paper-note">본 문서는 Mock 업무지침을 기준으로 작성된 초안이며, 최종 판정은 담당자 검토를 거쳐야 합니다.</p>
+      <p className="paper-note">본 문서는 변경관리 지침 및 붙임 기준으로 작성된 초안이며, 최종 판정은 담당자 검토를 거쳐야 합니다.</p>
     </article>
   </div>;
 }
@@ -384,16 +513,28 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
 }
 
 function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Question[]; onApprove: (id: string) => void }) {
-  const pending = items.filter(c => approvalPendingStatuses.includes(c.status));
+  const pending = items.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT");
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
     <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
-    {selectedCase && <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{selectedCase.title}</h2><p>{selectedCase.caseNumber} · {selectedCase.workType} · 작성자 {selectedCase.author}</p></div><button className="btn ghost" onClick={() => setSelectedCase(null)}>닫기</button></div><div className="detail-summary"><span>대상 여부<b>{selectedCase.judgment?.isMocTarget ? "대상" : "비대상"}</b></span><span>등급<b>{gradeLabel(selectedCase)}</b></span><span>위험도<b>{selectedCase.judgment?.riskLevel ?? "판단 중"}</b></span></div><h3>판단 근거</h3><ul className="evidence-list">{selectedCase.judgment?.evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>)}</ul><h3>전체 질문과 답변</h3><ul className="answer-detail-list">{Object.entries(selectedCase.answers).map(([questionId, answer]) => { const question = list.find(item => item.id === questionId); return <li key={questionId}><span>{question?.text ?? questionId}</span><b>{optionMeta[answer].label}</b></li>; })}</ul></section>}</div>;
+    {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} />}</div>;
 }
 
-function MocReviewDetail({ item, onClose }: { item: MocCase; onClose: () => void }) {
+function MocReviewDetail({ item, onClose, questionList = questions }: { item: MocCase; onClose: () => void; questionList?: Question[] }) {
   const answered = Object.entries(item.answers);
-  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><button className="btn ghost" onClick={onClose}>닫기</button></div><div className="detail-summary"><span>대상 여부<b>{item.judgment ? item.judgment.isMocTarget ? "대상" : "비대상" : "-"}</b></span><span>등급<b>{item.judgment ? gradeLabel(item) : "-"}</b></span><span>위험도<b>{item.judgment?.riskLevel ?? "-"}</b></span></div><h3>판단 근거</h3><ul className="evidence-list">{item.judgment ? item.judgment.evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>) : <li>-</li>}</ul><h3>전체 질문과 답변</h3><ul className="answer-detail-list">{item.judgment ? answered.map(([id, value]) => <li key={id}><span>{questions.find(question => question.id === id)?.text ?? id}</span><b>{optionMeta[value].label}</b></li>) : <li><span>-</span><b>-</b></li>}</ul></section>;
+  const comparisons = Object.entries(item.replacementDecision?.comparisons ?? {});
+  const criteria = item.replacementDecision?.assetType ? criteriaForAsset(item.replacementDecision.assetType) : [];
+  const decisionReady = Boolean(item.replacementDecision && item.replacementDecision.result !== "UNDETERMINED");
+  const answerText = (value: unknown) => value === "YES" ? "예" : value === "NO" ? "아니오" : value === "UNKNOWN" ? "잘 모르겠음" : value === "NOT_APPLICABLE" ? "해당 없음" : "-";
+  const comparisonText = (value: unknown) => value === "SAME" ? "동일" : value === "DIFFERENT" ? "다름" : value === "UNKNOWN" ? "확인 필요" : value === "NOT_APPLICABLE" ? "해당 없음" : "-";
+  const targetLabel = item.replacementDecision?.result === "SIMPLE_REPLACEMENT" ? "단순 교체" : item.replacementDecision?.result === "CHANGE" ? "변경관리 대상" : item.judgment ? item.judgment.isMocTarget ? "대상" : "비대상" : "-";
+  const grade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
+  const evidences = item.gradeDecision?.matchedRules ?? item.replacementDecision?.matchedCriteria ?? item.judgment?.evidences ?? [];
+  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><button className="btn ghost" onClick={onClose}>닫기</button></div>
+    {item.basicInfo && <><h3>변경 기본정보</h3><div className="detail-summary detail-basic"><span>변경 사유<b>{item.basicInfo.reason || "-"}</b></span><span>대상 설비<b>{item.basicInfo.targetEquipment || "-"}</b></span><span>변경 구분<b>{item.basicInfo.changeKind === "EMERGENCY" ? "비상 변경" : "일반 변경"}</b></span><span>적용 기간<b>{item.basicInfo.duration === "TEMPORARY" ? "임시 변경" : "영구 변경"}</b></span></div><div className="before-after-detail"><div><small>변경 전</small><p>{item.basicInfo.beforeState || "-"}</p></div><div><small>변경 후</small><p>{item.basicInfo.afterState || "-"}</p></div></div></>}
+    <div className="detail-summary"><span>대상 여부<b>{decisionReady ? targetLabel : "-"}</b></span><span>등급<b>{decisionReady && grade && grade !== "UNDETERMINED" ? `${grade}등급` : "-"}</b></span><span>진행 상태<b>{item.workflow?.status ?? statusLabels[item.status]}</b></span></div>
+    <h3>판단 근거</h3><ul className="evidence-list">{decisionReady && evidences.length ? evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>) : <li>-</li>}</ul>
+    <h3>전체 질문과 답변</h3><ul className="answer-detail-list">{decisionReady ? <>{comparisons.map(([id, value]) => <li key={`comparison-${id}`}><span>{criteria.find(criterion => criterion.id === id)?.label ?? id}</span><b>{comparisonText(value)}</b></li>)}{answered.map(([id, value]) => { const question = questionList.find(question => question.id === id); const gradeRule = gradeRules.find(rule => rule.id === id); return <li key={id}><span>{gradeRule?.title ?? question?.text ?? id}</span><b>{answerText(value)}</b></li>; })}</> : <li><span>-</span><b>-</b></li>}</ul></section>;
 }
 
 function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onOpen: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {
