@@ -5,6 +5,8 @@ export { createEmptyMocCase } from "./moc/defaults.ts";
 export { normalizeMocCasesV2 } from "./moc/migration.ts";
 export * from "./moc/replacement-criteria.ts";
 export * from "./moc/replacement-engine.ts";
+export * from "./moc/grade-rules.ts";
+export * from "./moc/grade-engine.ts";
 
 export type AnswerValue = "YES" | "NO" | "UNKNOWN" | "NOT_APPLICABLE";
 export type WorkType = "기계 설비" | "배관" | "전기" | "계장" | "운전조건" | "원료·화학물질" | "작업 절차" | "기타";
