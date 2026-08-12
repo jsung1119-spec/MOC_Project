@@ -7,7 +7,7 @@ import {
   deriveWorkflowStatus, guidelines, judge, normalizeMocCases, optionMeta, questions, statusLabels,
   visibleQuestions,
 } from "./lib/moc";
-import { casesForSite, isSite, remindersForCases, Site, sites } from "./lib/sites";
+import { casesForSite, isSite, reminderReasonsForCase, remindersForCases, Site, sites } from "./lib/sites";
 import { criteriaForAsset, type AssetType } from "./lib/moc/replacement-criteria";
 import type { GradeRecommendation } from "./lib/moc/grade-engine";
 import { gradeRules } from "./lib/moc/grade-rules";
@@ -44,7 +44,8 @@ const approvalPendingStatuses: MocStatus[] = ["JUDGMENT_COMPLETED", "SUBMITTED",
 
 function cn(...parts: (string | false | null | undefined)[]) { return parts.filter(Boolean).join(" "); }
 function fmt(date: string) { return date ? date.replaceAll("-", ". ") : "-"; }
-function daysFrom(date: string) { return Math.ceil((new Date("2026-07-29").getTime() - new Date(date).getTime()) / 86400000); }
+function todayKey() { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10); }
+function daysFrom(date: string) { return Math.ceil((new Date(todayKey()).getTime() - new Date(date).getTime()) / 86400000); }
 function gradeLabel(c?: MocCase) { return c?.judgment?.grade === "NONE" || !c?.judgment ? "-" : `${c.judgment.grade}등급`; }
 
 function BrandLogo({ className = "" }: { className?: string }) {
@@ -389,17 +390,17 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
     ["제출 대기", cases.filter(c => c.status === "READY_TO_SUBMIT").length, "amber"],
     ["검토 중", cases.filter(c => ["SUBMITTED", "UNDER_REVIEW"].includes(c.status)).length, "purple"],
     ["승인 완료", cases.filter(c => ["APPROVED", "CLOSED"].includes(c.status)).length, "green"],
-    ["기한 초과", reminders.filter(c => c.dueDate < "2026-07-29").length, "red"],
+    ["기한 초과", reminders.filter(c => c.dueDate < todayKey()).length, "red"],
   ];
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
     <section className="dashboard-grid">
       <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={onHistory}>전체 보기 →</button></div>
-        <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < "2026-07-29" && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
+        <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
       </div>
       <div className="card reminder-card"><div className="card-head"><div><span className="mini-icon amber">!</span><h2>미완료 Reminder</h2></div><Badge tone="amber">{reminders.length}건</Badge></div>
-        {reminders.slice(0, 2).map(c => <div className="reminder-mini" key={c.id}><div><Badge tone={c.dueDate < "2026-07-29" ? "red" : "amber"}>{c.dueDate < "2026-07-29" ? `${daysFrom(c.dueDate)}일 초과` : "마감 임박"}</Badge><h3>{c.title}</h3><p>{statusLabels[c.status]} · {fmt(c.dueDate)}까지</p></div><button onClick={() => onOpen(c, c.judgment ? "draft" : "question")}>이어서 작성 →</button></div>)}
+        {reminders.slice(0, 2).map(c => <div className="reminder-mini" key={c.id}><div><Badge tone={c.dueDate < todayKey() ? "red" : "amber"}>{c.dueDate < todayKey() ? `${daysFrom(c.dueDate)}일 초과` : "후속 조치"}</Badge><h3>{c.title}</h3><p>{reminderReasonsForCase(c)[0] ?? statusLabels[c.status]} · {fmt(c.dueDate)}까지</p></div><button onClick={() => onOpen(c, c.schemaVersion === 2 ? "process" : c.judgment ? "draft" : "question")}>이어서 작성 →</button></div>)}
         <button className="btn soft full" onClick={onReminder}>Reminder 전체 보기</button>
       </div>
     </section>
@@ -499,15 +500,15 @@ function Preview({ item, onEdit, onSubmit }: { item: MocCase; onEdit: () => void
 function Progress({ item, onNext, onContinue }: { item: MocCase; onNext: () => void; onContinue: () => void }) {
   let current = flow.findIndex(s => s.key === item.status); if (current < 0) current = item.status === "READY_TO_SUBMIT" ? 2 : 0;
   return <div className="focused-page wide"><div className="page-title"><div><span className="eyebrow">{item.caseNumber}</span><h1>{item.title}</h1><p>{item.workType} · {item.department} · 작성자 {item.author}</p></div><Badge tone={item.status === "CLOSED" ? "green" : "blue"}>{statusLabels[item.status]}</Badge></div>
-    <div className="case-overview card"><span>대상 여부<b>{item.judgment ? item.judgment.isMocTarget ? "MOC 대상" : "비대상" : "판단 중"}</b></span><span>등급<b>{gradeLabel(item)}</b></span><span>완료 예정일<b className={cn(item.dueDate < "2026-07-29" && "danger-text")}>{fmt(item.dueDate)}</b></span><span>진행률<b>{Math.round(((current + 1) / flow.length) * 100)}%</b></span></div>
+    <div className="case-overview card"><span>대상 여부<b>{item.judgment ? item.judgment.isMocTarget ? "MOC 대상" : "비대상" : "판단 중"}</b></span><span>등급<b>{gradeLabel(item)}</b></span><span>완료 예정일<b className={cn(item.dueDate < todayKey() && "danger-text")}>{fmt(item.dueDate)}</b></span><span>진행률<b>{Math.round(((current + 1) / flow.length) * 100)}%</b></span></div>
     <section className="timeline-card card"><div className="card-head"><div><h2>진행 상태</h2><p>단계별 담당자와 완료 내역을 확인하세요.</p></div><button className="btn soft" onClick={onContinue}>이어서 작성</button></div><div className="timeline">{flow.map((s, i) => <div key={s.key} className={cn(i < current && "done", i === current && "current")}><span className="timeline-dot">{i < current ? "✓" : i + 1}</span><i/><div><b>{s.label}</b><p>{s.help}</p></div><div className="timeline-status">{i < current ? <><b>완료</b><small>2026. 07. {20 + i}</small></> : i === current ? <><Badge tone="blue">현재 단계</Badge><small>담당: {item.author}</small></> : <small>대기</small>}</div>{i === current && item.status !== "CLOSED" && <button className="btn primary" onClick={onNext}>다음 단계 완료</button>}</div>)}</div></section>
   </div>;
 }
 
 function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: string[]; onOpen: (c: MocCase) => void; onSend: (c: MocCase) => void }) {
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">FOLLOW-UP CENTER</span><h1>미완료 업무를 놓치지 마세요</h1><p>마감 임박·기한 초과·미제출 건을 한곳에서 관리합니다.</p></div><Badge tone="amber">{items.length}건 확인 필요</Badge></div>
-    <div className="reminder-tabs"><button className="active">전체 {items.length}</button><button>기한 초과 {items.filter(i => i.dueDate < "2026-07-29").length}</button><button>마감 임박</button><button>미제출</button></div>
-    <div className="reminder-list">{items.map(c => <div className="reminder-full card" key={c.id}><div className={cn("urgency", c.dueDate < "2026-07-29" ? "late" : "soon")}><b>{c.dueDate < "2026-07-29" ? `D+${daysFrom(c.dueDate)}` : `D-${Math.abs(daysFrom(c.dueDate))}`}</b><small>{c.dueDate < "2026-07-29" ? "기한 초과" : "마감 임박"}</small></div><div className="reminder-content"><div><Badge tone="gray">{c.caseNumber}</Badge><h2>{c.title}</h2><p>현재 단계: <b>{statusLabels[c.status]}</b> · 미완료: {c.judgment ? "문서 초안 및 제출" : "질문 답변 및 판단"}</p></div><div className="due"><small>완료 예정일</small><b>{fmt(c.dueDate)}</b></div></div><div className="reminder-actions"><button className="btn ghost">알림 연기</button><button className="btn soft" disabled={logs.includes(c.id)} onClick={() => onSend(c)}>{logs.includes(c.id) ? "✓ 발송 완료" : "메일 로그 생성"}</button><button className="btn primary" onClick={() => onOpen(c)}>이어서 작성 →</button></div></div>)}</div>
+    <div className="reminder-tabs"><button className="active">전체 {items.length}</button><button>기한 초과 {items.filter(i => i.dueDate < todayKey()).length}</button><button>후속 조치</button><button>미제출</button></div>
+    <div className="reminder-list">{items.map(c => { const reasons = reminderReasonsForCase(c); const overdue = c.dueDate < todayKey(); return <div className="reminder-full card" key={c.id}><div className={cn("urgency", overdue ? "late" : "soon")}><b>{overdue ? `D+${daysFrom(c.dueDate)}` : `D-${Math.abs(daysFrom(c.dueDate))}`}</b><small>{overdue ? "기한 초과" : "후속 조치"}</small></div><div className="reminder-content"><div><Badge tone="gray">{c.caseNumber}</Badge><h2>{c.title}</h2><p>현재 단계: <b>{statusLabels[c.status]}</b> · 미완료: {reasons.join(", ")}</p></div><div className="due"><small>완료 예정일</small><b>{fmt(c.dueDate)}</b></div></div><div className="reminder-actions"><button className="btn ghost">알림 연기</button><button className="btn soft" disabled={logs.includes(c.id)} onClick={() => onSend(c)}>{logs.includes(c.id) ? "✓ 발송 완료" : "메일 로그 생성"}</button><button className="btn primary" onClick={() => onOpen(c)}>이어서 작성 →</button></div></div>; })}</div>
     <section className="card mail-preview"><div><span>@</span><div><b>이메일 Reminder 예시</b><p>개발 환경에서는 실제 발송 대신 발송 이력을 기록합니다.</p></div></div><code>[알림] 변경요소관리 작성이 완료되지 않았습니다.<br/><br/>작업명 · 현재 진행 상태 · 미완료 항목 · 완료 예정일 · 서비스 바로가기</code></section>
   </div>;
 }
