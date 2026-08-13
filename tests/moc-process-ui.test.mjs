@@ -33,6 +33,21 @@ test("grade 1 and 2 committee path is visibly distinguished from grade 3", async
   assert.match(source, /설비운전파트장/);
 });
 
+test("grade 1 and 2 committee records manage attendees with add, check, and confirmed deletion", async () => {
+  const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
+  const types = await read("../app/lib/moc/types.ts");
+
+  for (const label of ["담당", "성명", "직책", "참석여부", "참석자 추가", "위원회 참석자 삭제"]) {
+    assert.match(source, new RegExp(label));
+  }
+  assert.match(source, /addCommitteeMember/);
+  assert.match(source, /committeeMemberPendingDeletion/);
+  assert.match(source, /type="checkbox" checked=\{member\.attended\}/);
+  assert.match(source, /filter\(\(member\) => member\.id !== committeeMemberPendingDeletion\)/);
+  assert.match(types, /export interface CommitteeMember/);
+  assert.match(types, /members: CommitteeMember\[\]/);
+});
+
 test("page routes guideline cases to the process workspace", async () => {
   const source = await read("../app/page.tsx");
   assert.match(source, /MocProcessWorkspace/);

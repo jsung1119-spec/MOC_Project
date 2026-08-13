@@ -70,10 +70,18 @@ export interface ApprovalRecord {
   comment?: string;
 }
 
+export interface CommitteeMember {
+  id: string;
+  responsibility: string;
+  name: string;
+  position: string;
+  attended: boolean;
+}
+
 export interface CommitteeRecord {
   held: boolean;
   heldAt?: string;
-  members: string[];
+  members: CommitteeMember[];
   decision: "APPROVED" | "REJECTED" | "SUPPLEMENT_REQUIRED" | null;
   finalChangeResult?: Exclude<ReplacementResult, "UNDETERMINED">;
   finalGrade?: Exclude<Grade, "UNDETERMINED">;

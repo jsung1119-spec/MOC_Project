@@ -18,6 +18,30 @@ function object(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function normalizeCommittee(value: unknown, fallback: MocCaseV2["committee"]): MocCaseV2["committee"] {
+  const source = object(value);
+  const rawMembers = Array.isArray(source.members) ? source.members : fallback.members;
+  const members = rawMembers.map((member, index) => {
+    if (typeof member === "string") return { id: `committee-${index}`, responsibility: "", name: member, position: "", attended: false };
+    const record = object(member);
+    return {
+      id: text(record.id, `committee-${index}`),
+      responsibility: text(record.responsibility),
+      name: text(record.name),
+      position: text(record.position),
+      attended: record.attended === true,
+    };
+  });
+  return {
+    ...fallback,
+    ...source,
+    held: source.held === true,
+    heldAt: text(source.heldAt) || undefined,
+    members,
+    decision: source.decision === "APPROVED" || source.decision === "REJECTED" || source.decision === "SUPPLEMENT_REQUIRED" ? source.decision : null,
+  };
+}
+
 function legacyWorkflowStatus(status: unknown, target: boolean | undefined): MocWorkflowStatus {
   if (status === "CLOSED" || status === "WORK_COMPLETED") return "COMPLETED";
   if (status === "APPROVED" || status === "WORK_IN_PROGRESS") return status === "APPROVED" ? "APPROVED" : "IMPLEMENTING";
@@ -51,7 +75,7 @@ export function normalizeMocCasesV2(input: unknown, fallbackSite: Site = sites[0
     });
 
     if (source.schemaVersion === MOC_SCHEMA_VERSION) {
-      return [{ ...base, ...source, schemaVersion: MOC_SCHEMA_VERSION, site } as MocCaseV2];
+      return [{ ...base, ...source, schemaVersion: MOC_SCHEMA_VERSION, site, committee: normalizeCommittee(source.committee, base.committee) } as MocCaseV2];
     }
 
     const judgment = object(source.judgment);
