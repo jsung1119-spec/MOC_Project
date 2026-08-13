@@ -453,7 +453,7 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
-    <section className="chart-grid"><DonutChart title="작업 유형별" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" items={gradeData} onSelect={(label) => onHistory(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`)}/></section>
+    <section className="chart-grid"><DonutChart title="작업 유형별" colorScheme="workType" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" colorScheme="grade" items={gradeData} onSelect={(label) => onHistory(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`)}/></section>
     <section className="dashboard-grid">
       <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
         <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
@@ -471,12 +471,19 @@ function countChartData(items: MocCase[], getLabel: (item: MocCase) => string) {
   return Array.from(items.reduce((map, item) => map.set(getLabel(item), (map.get(getLabel(item)) ?? 0) + 1), new Map<string, number>())).map(([label, count]) => ({ label, count }));
 }
 
-function DonutChart({ title, items, onSelect }: { title: string; items: Array<{ label: string; count: number }>; onSelect: (label: string) => void }) {
-  const colors = ["#1476b8", "#2c9c79", "#7b59ae", "#e58a15", "#d9464a", "#54748c"];
+const workTypeChartColors: Record<string, string> = {
+  "기계 설비": "#e53935", "배관": "#fb8c00", "전기": "#fdd835", "계장": "#43a047",
+  "운전조건": "#1e88e5", "원료·화학물질": "#3949ab", "작업 절차": "#8e24aa", "기타": "#8a949e",
+};
+const gradeChartColors: Record<string, string> = { "1등급": "#e53935", "2등급": "#fb8c00", "3등급": "#fdd835", "비대상": "#8a949e" };
+
+function DonutChart({ title, colorScheme, items, onSelect }: { title: string; colorScheme: "workType" | "grade"; items: Array<{ label: string; count: number }>; onSelect: (label: string) => void }) {
+  const colors = colorScheme === "workType" ? workTypeChartColors : gradeChartColors;
+  const colorFor = (label: string) => colors[label] ?? "#8a949e";
   const total = items.reduce((sum, item) => sum + item.count, 0);
   let point = 0;
-  const gradient = total ? items.map((item, index) => { const start = point; point += (item.count / total) * 100; return `${colors[index % colors.length]} ${start}% ${point}%`; }).join(", ") : "#e8eef2 0 100%";
-  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건과 비대상 건을 표시합니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>집계 건</small></div><div className="donut-legend">{items.length ? items.map((item, index) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colors[index % colors.length] }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 또는 비대상 이력이 없습니다.</p>}</div></div></section>;
+  const gradient = total ? items.map((item) => { const start = point; point += (item.count / total) * 100; return `${colorFor(item.label)} ${start}% ${point}%`; }).join(", ") : "#e8eef2 0 100%";
+  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건과 비대상 건을 표시합니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>집계 건</small></div><div className="donut-legend">{items.length ? items.map((item) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colorFor(item.label) }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 또는 비대상 이력이 없습니다.</p>}</div></div></section>;
 }
 
 function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {

@@ -207,6 +207,18 @@ test("dashboard history link navigates directly without requiring a first case",
   assert.doesNotMatch(page, /onOpen\(cases\[0\], "history"\)/);
 });
 
+test("dashboard donut charts use fixed work-type rainbow and grade colors", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /"기계 설비": "#e53935"/);
+  assert.match(page, /"작업 절차": "#8e24aa"/);
+  assert.match(page, /"기타": "#8a949e"/);
+  assert.match(page, /"1등급": "#e53935"/);
+  assert.match(page, /"2등급": "#fb8c00"/);
+  assert.match(page, /"3등급": "#fdd835"/);
+  assert.match(page, /"비대상": "#8a949e"/);
+});
+
 test("temporary saved guideline questionnaires restore the basic, replacement, or grade step from history", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const basic = await readFile(new URL("../app/components/moc/NewMocCaseForm.tsx", import.meta.url), "utf8");
