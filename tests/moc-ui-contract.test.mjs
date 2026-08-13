@@ -6,9 +6,11 @@ const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("new MOC form captures every guideline minimum field", async () => {
   const source = await read("../app/components/moc/NewMocCaseForm.tsx");
-  for (const field of ["title", "reason", "description", "targetEquipment", "workType", "beforeState", "afterState", "changeKind", "duration", "temporaryStartDate", "temporaryEndDate"]) {
+  for (const field of ["title", "reason", "description", "targetEquipment", "workType", "beforeState", "beforeImageDataUrl", "changeKind", "duration", "temporaryStartDate", "temporaryEndDate"]) {
     assert.match(source, new RegExp(field));
   }
+  assert.match(source, /type="file"/);
+  assert.doesNotMatch(source, /label="변경 후 상태"/);
   assert.match(source, /validateBasicInfo/);
 });
 

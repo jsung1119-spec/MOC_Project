@@ -44,7 +44,6 @@ export function createEmptyMocCase({
       targetEquipment: "",
       workType,
       beforeState: "",
-      afterState: "",
       changeKind: "NORMAL",
       duration: "PERMANENT",
     },

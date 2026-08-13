@@ -10,7 +10,7 @@ export interface ValidationError {
 const required: Array<[keyof MocBasicInfo, string]> = [
   ["title", "변경 제목"], ["reason", "변경 사유"], ["description", "변경 내용"],
   ["targetEquipment", "대상 설비/공정"], ["workType", "변경 대상 분야"],
-  ["beforeState", "변경 전 상태"], ["afterState", "변경 후 상태"],
+  ["beforeState", "변경 전 상태"],
   ["changeKind", "변경 종류"], ["duration", "변경 구분"],
 ];
 

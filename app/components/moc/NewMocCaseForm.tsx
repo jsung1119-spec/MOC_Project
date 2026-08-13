@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import type { AssetType } from "../../lib/moc/replacement-criteria";
 import type { MocBasicInfo, WorkType } from "../../lib/moc/types";
 import { validateBasicInfo } from "../../lib/moc/validation";
@@ -25,7 +25,7 @@ const assetOptions: Array<{ value: AssetType; label: string; workTypes: WorkType
 
 const empty: MocBasicInfo = {
   title: "", reason: "", description: "", targetEquipment: "", workType: "기계 설비",
-  beforeState: "", afterState: "", changeKind: "NORMAL", duration: "PERMANENT",
+  beforeState: "", changeKind: "NORMAL", duration: "PERMANENT",
 };
 
 export function NewMocCaseForm({ onSubmit, onBack }: { onSubmit: (info: MocBasicInfo, assetType: AssetType) => void; onBack: () => void }) {
@@ -52,11 +52,27 @@ export function NewMocCaseForm({ onSubmit, onBack }: { onSubmit: (info: MocBasic
         <label className="field"><span>세부 판정 대상</span><select value={assetType} onChange={(event) => setAssetType(event.target.value as AssetType)}>{assets.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       </div>
       <div className="form-grid one"><GuidelineField area label="변경 사유" value={info.reason} onChange={(value) => set("reason", value)} error={errorFor("reason")?.message}/><GuidelineField area label="변경 내용" value={info.description} onChange={(value) => set("description", value)} error={errorFor("description")?.message}/></div>
-      <div className="form-grid"><GuidelineField area label="변경 전 상태" value={info.beforeState} onChange={(value) => set("beforeState", value)} error={errorFor("beforeState")?.message}/><GuidelineField area label="변경 후 상태" value={info.afterState} onChange={(value) => set("afterState", value)} error={errorFor("afterState")?.message}/></div>
+      <div className="form-grid one"><GuidelineField area label="변경 전 상태" value={info.beforeState} onChange={(value) => set("beforeState", value)} error={errorFor("beforeState")?.message}/><BeforeStatePhoto value={info.beforeImageDataUrl} onChange={(value) => set("beforeImageDataUrl", value)}/></div>
       <div className="guideline-choice-row"><fieldset><legend>변경 종류</legend><label><input type="radio" checked={info.changeKind === "NORMAL"} onChange={() => set("changeKind", "NORMAL")}/> 정상변경</label><label><input type="radio" checked={info.changeKind === "EMERGENCY"} onChange={() => set("changeKind", "EMERGENCY")}/> 비상변경</label></fieldset><fieldset><legend>변경 구분</legend><label><input type="radio" checked={info.duration === "PERMANENT"} onChange={() => set("duration", "PERMANENT")}/> 영구</label><label><input type="radio" checked={info.duration === "TEMPORARY"} onChange={() => set("duration", "TEMPORARY")}/> 임시</label></fieldset></div>
       {info.duration === "TEMPORARY" && <div className="notice amber"><b>30</b><div><strong>임시변경은 30일 이내로 제한됩니다.</strong><div className="form-grid"><GuidelineField type="date" label="사용 시작일" value={info.temporaryStartDate ?? ""} onChange={(value) => set("temporaryStartDate", value)} error={errorFor("temporaryStartDate")?.message}/><GuidelineField type="date" label="사용 종료일" value={info.temporaryEndDate ?? ""} onChange={(value) => set("temporaryEndDate", value)} error={errorFor("temporaryEndDate")?.message}/></div></div></div>}
       <div className="question-footer"><button className="btn ghost" onClick={onBack}>← 이전</button><button className="btn primary" onClick={submit}>변경판정 시작 →</button></div>
     </section></div>;
+}
+
+function BeforeStatePhoto({ value, onChange }: { value?: string; onChange: (value: string | undefined) => void }) {
+  const [error, setError] = useState("");
+  function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("사진 파일만 첨부할 수 있습니다."); return; }
+    if (file.size > 2 * 1024 * 1024) { setError("사진은 2MB 이하 파일을 선택해 주세요."); return; }
+    const reader = new FileReader();
+    reader.onload = () => { onChange(typeof reader.result === "string" ? reader.result : undefined); setError(""); };
+    reader.onerror = () => setError("사진을 읽지 못했습니다. 다른 파일을 선택해 주세요.");
+    reader.readAsDataURL(file);
+  }
+  return <div className="field before-photo-field"><span>변경 전 상태 사진 <small>선택</small></span><p>현장 또는 설비의 현재 상태 사진을 1장 첨부할 수 있습니다. (최대 2MB)</p><input aria-label="변경 전 상태 사진" type="file" accept="image/*" onChange={selectPhoto}/>{error && <small className="field-error">{error}</small>}{value && <div className="before-photo-preview"><img src={value} alt="변경 전 상태 첨부 사진"/><button type="button" className="btn ghost" onClick={() => onChange(undefined)}>사진 삭제</button></div>}</div>;
 }
 
 function GuidelineField({ label, value, onChange, error, area, type = "text" }: { label: string; value: string; onChange: (value: string) => void; error?: string; area?: boolean; type?: string }) {

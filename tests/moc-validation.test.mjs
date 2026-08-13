@@ -11,7 +11,6 @@ const validBasicInfo = {
   targetEquipment: "T-101 이송배관",
   workType: "배관",
   beforeState: "CS 배관",
-  afterState: "STS 배관",
   changeKind: "NORMAL",
   duration: "PERMANENT",
 };

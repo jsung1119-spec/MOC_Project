@@ -22,7 +22,10 @@ export interface MocBasicInfo {
   targetEquipment: string;
   workType: WorkType;
   beforeState: string;
-  afterState: string;
+  /** 기존 이력 호환용 필드입니다. 신규 변경 판단에서는 입력하지 않습니다. */
+  afterState?: string;
+  /** 브라우저 저장소에 보관하는 변경 전 상태 사진(Data URL)입니다. */
+  beforeImageDataUrl?: string;
   changeKind: ChangeKind;
   duration: ChangeDuration;
   temporaryStartDate?: string;
