@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { inferGradeCandidateIds, recommendGrade, type GradeRecommendation } from "../../lib/moc/grade-engine";
 import { gradeRules } from "../../lib/moc/grade-rules";
 import type { WorkType } from "../../lib/moc/types";
@@ -18,7 +18,7 @@ const categoriesByWorkType: Record<WorkType, string[]> = {
 
 type RuleAnswer = "YES" | "NO" | "UNKNOWN";
 
-export function GradeQuestionnaire({ workType, contextText, onComplete, onTemporarySave, onBack }: { workType: WorkType; contextText: string; onComplete: (result: GradeRecommendation, answers: Record<string, RuleAnswer>) => void; onTemporarySave: (answers: Record<string, RuleAnswer>) => void; onBack: () => void }) {
+export function GradeQuestionnaire({ workType, contextText, onComplete, onTemporarySave, onBack, initialAnswers, draftKey }: { workType: WorkType; contextText: string; onComplete: (result: GradeRecommendation, answers: Record<string, RuleAnswer>) => void; onTemporarySave: (answers: Record<string, RuleAnswer>) => void; onBack: () => void; initialAnswers?: Record<string, RuleAnswer>; draftKey?: string }) {
   const suggestedRuleIds = useMemo(() => inferGradeCandidateIds(contextText), [contextText]);
   const rules = useMemo(() => {
     const categories = categoriesByWorkType[workType];
@@ -27,7 +27,13 @@ export function GradeQuestionnaire({ workType, contextText, onComplete, onTempor
     return suggested.length ? suggested : scoped;
   }, [workType, suggestedRuleIds]);
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, RuleAnswer>>({});
+  const [answers, setAnswers] = useState<Record<string, RuleAnswer>>(initialAnswers ?? {});
+  useEffect(() => {
+    const saved = initialAnswers ?? {};
+    setAnswers(saved);
+    const firstUnanswered = rules.findIndex((rule) => !saved[rule.id]);
+    setIndex(firstUnanswered < 0 ? Math.max(0, rules.length - 1) : firstUnanswered);
+  }, [draftKey, rules, initialAnswers]);
   const current = rules[index];
   const selected = answers[current.id];
   const finish = () => onComplete(recommendGrade(Object.entries(answers).filter(([, answer]) => answer === "YES").map(([id]) => id), Object.entries(answers).filter(([, answer]) => answer === "UNKNOWN").map(([id]) => id)), answers);

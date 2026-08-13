@@ -106,7 +106,7 @@ test("return to entry clears access and site selection while preserving work his
   assert.doesNotMatch(returnBlock, /setCases\(/);
   assert.doesNotMatch(returnBlock, /safechange-cases/);
   assert.match(page, /const siteCases = selectedSite \? casesForSite\(cases, selectedSite\) : \[\]/);
-  assert.match(page, /const reminders = remindersForCases\(siteCases\)/);
+  assert.match(page, /const reminders = remindersForCases\(gradeConfirmedCases\)/);
 });
 
 test("homepage never restores a previously selected business site", async () => {
@@ -147,7 +147,7 @@ test("completed judgments remain on the result screen and enter the approval que
 test("approval navigation shows a selected-site pending count badge", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /const approvalPendingCount = siteCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\) && c\.replacementDecision\?\.result !== "SIMPLE_REPLACEMENT"\)\.length;/);
+  assert.match(page, /const approvalPendingCount = gradeConfirmedCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\) && c\.replacementDecision\?\.result !== "SIMPLE_REPLACEMENT"\)\.length;/);
   assert.match(page, /approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
 });
@@ -202,9 +202,22 @@ test("admin rows allocate available width to their primary content", async () =>
 test("dashboard history link navigates directly without requiring a first case", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /onHistory=\{\(\) => go\("history"\)\}/);
-  assert.match(page, /onClick=\{onHistory\}/);
+  assert.match(page, /onHistory=\{\(chartFilter\) => \{ setFilter\(chartFilter \?\? ""\); go\("history"\); \}\}/);
+  assert.match(page, /onClick=\{\(\) => onHistory\(\)\}/);
   assert.doesNotMatch(page, /onOpen\(cases\[0\], "history"\)/);
+});
+
+test("temporary saved guideline questionnaires restore the basic, replacement, or grade step from history", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const basic = await readFile(new URL("../app/components/moc/NewMocCaseForm.tsx", import.meta.url), "utf8");
+  const replacement = await readFile(new URL("../app/components/moc/ReplacementQuestionnaire.tsx", import.meta.url), "utf8");
+  const grade = await readFile(new URL("../app/components/moc/GradeQuestionnaire.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /onResume=\{resumeGuidelineDraft\}/);
+  assert.match(page, /onContinue=\{selectedCase\.schemaVersion === 2 && selectedCase\.status === "QUESTIONNAIRE_IN_PROGRESS"/);
+  assert.match(basic, /initialInfo\?: MocBasicInfo/);
+  assert.match(replacement, /initialComparisons\?: Record<string, ComparisonValue>/);
+  assert.match(grade, /initialAnswers\?: Record<string, RuleAnswer>/);
 });
 
 test("dashboard greeting is a fixed system message rather than a user name", async () => {

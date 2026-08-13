@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import type { AssetType } from "../../lib/moc/replacement-criteria";
 import type { MocBasicInfo, WorkType } from "../../lib/moc/types";
 import { validateBasicInfo } from "../../lib/moc/validation";
@@ -28,10 +28,15 @@ const empty: MocBasicInfo = {
   beforeState: "", changeKind: "NORMAL", duration: "PERMANENT",
 };
 
-export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack }: { onSubmit: (info: MocBasicInfo, assetType: AssetType) => void; onTemporarySave: (info: MocBasicInfo, assetType: AssetType) => void; onBack: () => void }) {
-  const [info, setInfo] = useState(empty);
-  const [assetType, setAssetType] = useState<AssetType>("PUMP");
+export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack, initialInfo, initialAssetType, draftKey }: { onSubmit: (info: MocBasicInfo, assetType: AssetType) => void; onTemporarySave: (info: MocBasicInfo, assetType: AssetType) => void; onBack: () => void; initialInfo?: MocBasicInfo; initialAssetType?: AssetType; draftKey?: string }) {
+  const [info, setInfo] = useState(initialInfo ?? empty);
+  const [assetType, setAssetType] = useState<AssetType>(initialAssetType ?? "PUMP");
   const [attempted, setAttempted] = useState(false);
+  useEffect(() => {
+    setInfo(initialInfo ?? empty);
+    setAssetType(initialAssetType ?? "PUMP");
+    setAttempted(false);
+  }, [draftKey, initialInfo, initialAssetType]);
   const errors = validateBasicInfo(info);
   const assets = useMemo(() => assetOptions.filter((option) => option.workTypes.includes(info.workType)), [info.workType]);
   const set = <K extends keyof MocBasicInfo>(key: K, value: MocBasicInfo[K]) => setInfo((current) => ({ ...current, [key]: value }));

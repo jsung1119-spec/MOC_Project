@@ -125,12 +125,21 @@ export default function Home() {
     setTimeout(() => setSaveState("saved"), 480);
   }
   function go(next: View) { setView(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function resumeGuidelineDraft(item: MocCase) {
+    setActiveId(item.id);
+    if (item.schemaVersion !== 2) return go(item.judgment ? "documents" : "question");
+    if (!item.replacementDecision) return go("new");
+    if (item.replacementDecision.result === "UNDETERMINED") return go("replacement");
+    if (item.replacementDecision.result === "CHANGE" && !item.gradeDecision) return go("grade");
+    go("guideline_result");
+  }
   function requestView(next: View) {
     if (next === "admin" && !adminAuthorized) {
       setAdminPromptMode("access");
       setAdminPromptOpen(true);
       return;
     }
+    if (next === "new") setActiveId("");
     go(next);
   }
   function selectSite(site: Site) {
@@ -236,8 +245,20 @@ export default function Home() {
     go(destination);
   }
   function saveNewGuidelineDraft(info: MocBasicInfo, assetType: AssetType) {
-    startGuidelineCase(info, assetType, "new");
+    if (active?.schemaVersion === 2 && active.status === "QUESTIONNAIRE_IN_PROGRESS" && !active.replacementDecision) {
+      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, basicInfo: info, guidelineAssetType: assetType });
+    } else {
+      startGuidelineCase(info, assetType, "new");
+    }
     setTemporarySavePromptOpen(true);
+  }
+  function continueFromBasicInfo(info: MocBasicInfo, assetType: AssetType) {
+    if (active?.schemaVersion === 2 && active.status === "QUESTIONNAIRE_IN_PROGRESS" && !active.replacementDecision) {
+      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, basicInfo: info, guidelineAssetType: assetType });
+      go("replacement");
+      return;
+    }
+    startGuidelineCase(info, assetType);
   }
   function saveReplacementDraft(comparisons: Record<string, ComparisonValue>) {
     if (!active) return;
@@ -337,10 +358,10 @@ export default function Home() {
   if (!hydrated) return <div className="loading">SafeChange를 준비하고 있습니다…</div>;
   if (!entered) return <EntryScreen onEnter={enterApplication} />;
 
-  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={(chartFilter) => { setFilter(chartFilter ?? ""); go("history"); }} />
-    : view === "new" ? <NewMocCaseForm onSubmit={startGuidelineCase} onTemporarySave={saveNewGuidelineDraft} onBack={() => go("dashboard")} />
-    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
-    : view === "grade" && active ? <GradeQuestionnaire workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
+  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => { setActiveId(""); go("new"); }} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={(chartFilter) => { setFilter(chartFilter ?? ""); go("history"); }} />
+    : view === "new" ? <NewMocCaseForm draftKey={active?.id ?? "new"} initialInfo={active?.schemaVersion === 2 && !active.replacementDecision ? active.basicInfo : undefined} initialAssetType={active?.schemaVersion === 2 && !active.replacementDecision ? active.guidelineAssetType : undefined} onSubmit={continueFromBasicInfo} onTemporarySave={saveNewGuidelineDraft} onBack={() => go("dashboard")} />
+    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire draftKey={active.id} initialComparisons={active.replacementDecision?.comparisons} assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
+    : view === "grade" && active ? <GradeQuestionnaire draftKey={active.id} initialAnswers={active.answers as unknown as Record<string, "YES" | "NO" | "UNKNOWN">} workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
     : view === "guideline_result" && active ? <MocDecisionResult item={active} onEdit={() => go("replacement")} onProcess={() => go("process")} onDashboard={() => go("dashboard")} />
     : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onChange={updateGuidelineCase} onBack={() => go("guideline_result")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
@@ -351,7 +372,7 @@ export default function Home() {
     : view === "preview" && active ? <Preview item={active} onEdit={() => go("draft")} onSubmit={() => { updateCase({ status: "SUBMITTED" }); notify("검토 담당자에게 제출되었습니다."); }} />
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
     : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={(c) => { setActiveId(c.id); go(c.schemaVersion === 2 ? "process" : c.judgment ? "draft" : "question"); }} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
-    : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onOpen={(item) => { setActiveId(item.id); go(item.schemaVersion === 2 ? "process" : "progress"); }} onRequestDelete={requestHistoryDeletion} />
+    : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onResume={resumeGuidelineDraft} onRequestDelete={requestHistoryDeletion} />
     : view === "approvals" ? <Approvals items={siteCases} list={questionList} onApprove={approveCase} />
     : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
 
@@ -571,7 +592,7 @@ function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Questio
     {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} />}</div>;
 }
 
-function MocReviewDetail({ item, onClose, questionList = questions }: { item: MocCase; onClose: () => void; questionList?: Question[] }) {
+function MocReviewDetail({ item, onClose, onContinue, questionList = questions }: { item: MocCase; onClose: () => void; onContinue?: () => void; questionList?: Question[] }) {
   const answered = Object.entries(item.answers);
   const comparisons = Object.entries(item.replacementDecision?.comparisons ?? {});
   const criteria = item.replacementDecision?.assetType ? criteriaForAsset(item.replacementDecision.assetType) : [];
@@ -581,14 +602,14 @@ function MocReviewDetail({ item, onClose, questionList = questions }: { item: Mo
   const targetLabel = item.replacementDecision?.result === "SIMPLE_REPLACEMENT" ? "단순 교체" : item.replacementDecision?.result === "CHANGE" ? "변경관리 대상" : item.judgment ? item.judgment.isMocTarget ? "대상" : "비대상" : "-";
   const grade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
   const evidences = item.gradeDecision?.matchedRules ?? item.replacementDecision?.matchedCriteria ?? item.judgment?.evidences ?? [];
-  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><button className="btn ghost" onClick={onClose}>닫기</button></div>
+  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="detail-actions">{onContinue && <button className="btn primary" onClick={onContinue}>이어서 작성</button>}<button className="btn ghost" onClick={onClose}>닫기</button></div></div>
     {item.basicInfo && <><h3>변경 기본정보</h3><div className="detail-summary detail-basic"><span>변경 사유<b>{item.basicInfo.reason || "-"}</b></span><span>대상 설비<b>{item.basicInfo.targetEquipment || "-"}</b></span><span>변경 구분<b>{item.basicInfo.changeKind === "EMERGENCY" ? "비상 변경" : "일반 변경"}</b></span><span>적용 기간<b>{item.basicInfo.duration === "TEMPORARY" ? "임시 변경" : "영구 변경"}</b></span></div><div className="before-after-detail"><div><small>변경 전 상태</small><p>{item.basicInfo.beforeState || "-"}</p>{item.basicInfo.beforeImageDataUrl && <img className="before-state-image" src={item.basicInfo.beforeImageDataUrl} alt="변경 전 상태 첨부 사진"/>}</div></div></>}
     <div className="detail-summary"><span>대상 여부<b>{decisionReady ? targetLabel : "-"}</b></span><span>등급<b>{decisionReady && grade && grade !== "UNDETERMINED" ? `${grade}등급` : "-"}</b></span><span>진행 상태<b>{item.workflow?.status ?? statusLabels[item.status]}</b></span></div>
     <h3>판단 근거</h3><ul className="evidence-list">{decisionReady && evidences.length ? evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>) : <li>-</li>}</ul>
     <h3>전체 질문과 답변</h3><ul className="answer-detail-list">{decisionReady ? <>{comparisons.map(([id, value]) => <li key={`comparison-${id}`}><span>{criteria.find(criterion => criterion.id === id)?.label ?? id}</span><b>{comparisonText(value)}</b></li>)}{answered.map(([id, value]) => { const question = questionList.find(question => question.id === id); const gradeRule = gradeRules.find(rule => rule.id === id); return <li key={id}><span>{gradeRule?.title ?? question?.text ?? id}</span><b>{answerText(value)}</b></li>; })}</> : <li><span>-</span><b>-</b></li>}</ul></section>;
 }
 
-function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onOpen: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {
+function History({ items, filter, onFilter, onResume, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onResume: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -614,7 +635,7 @@ function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: 
   const toggleAll = () => setSelectedIds(allSelected ? selectedIds.filter((id) => !shown.some((item) => item.id === id)) : [...new Set([...selectedIds, ...shown.map((item) => item.id)])]);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">MOC RECORDS</span><h1>작성 이력</h1><p>판단부터 종결까지 모든 변경 이력을 확인할 수 있습니다.</p></div><div className="history-actions"><button className="btn ghost" disabled={selectedIds.length === 0} onClick={() => onRequestDelete(selectedIds)}>이력 삭제</button><button className="btn primary">↓ 목록 내보내기</button></div></div>
     <section className="filter-card card"><label>통합 검색<input value={filter} onChange={e => onFilter(e.target.value)} placeholder="관리번호, 작업명, 작성자 검색"/></label><label>작성 기간 시작<input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}/></label><label>작성 기간 종료<input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/></label><label>작업 유형<select value={workType} onChange={e => setWorkType(e.target.value)}><option>전체</option>{workTypes.map(w => <option key={w.label}>{w.label}</option>)}</select></label><label>대상 여부<select value={target} onChange={e => setTarget(e.target.value)}><option>전체</option><option>대상</option><option>비대상</option><option>미판단</option></select></label><label>진행 상태<select value={status} onChange={e => setStatus(e.target.value)}><option>전체</option><option>진행 중</option><option>완료</option></select></label></section>
-    <section className="card history-card"><div className="card-head"><div><h2>전체 {shown.length}건</h2><p>최신 작성 순으로 표시됩니다.</p></div><span className="muted">{startDate || "전체 기간"} — {endDate || "오늘"}</span></div><div className="table-wrap"><table><thead><tr><th><input aria-label="현재 목록 전체 선택" type="checkbox" checked={allSelected} onChange={toggleAll}/></th><th>관리번호</th><th>작업명</th><th>작업 유형</th><th>대상 여부</th><th>등급</th><th>작성자 / 부서</th><th>작성일</th><th>상태</th><th></th></tr></thead><tbody>{shown.map(c => <tr key={c.id}><td><input aria-label={`${c.caseNumber} 선택`} type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelected(c.id)}/></td><td><b>{c.caseNumber}</b></td><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td>{gradeLabel(c)}</td><td>{c.author}<small>{c.department}</small></td><td>{fmt(c.createdAt)}</td><td><Badge tone={c.status === "CLOSED" ? "green" : "blue"}>{statusLabels[c.status]}</Badge></td><td><button className="row-action" onClick={() => onOpen(c)}>상세 보기 →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}</section>
+    <section className="card history-card"><div className="card-head"><div><h2>전체 {shown.length}건</h2><p>최신 작성 순으로 표시됩니다.</p></div><span className="muted">{startDate || "전체 기간"} — {endDate || "오늘"}</span></div><div className="table-wrap"><table><thead><tr><th><input aria-label="현재 목록 전체 선택" type="checkbox" checked={allSelected} onChange={toggleAll}/></th><th>관리번호</th><th>작업명</th><th>작업 유형</th><th>대상 여부</th><th>등급</th><th>작성자 / 부서</th><th>작성일</th><th>상태</th><th></th></tr></thead><tbody>{shown.map(c => <tr key={c.id}><td><input aria-label={`${c.caseNumber} 선택`} type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelected(c.id)}/></td><td><b>{c.caseNumber}</b></td><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td>{gradeLabel(c)}</td><td>{c.author}<small>{c.department}</small></td><td>{fmt(c.createdAt)}</td><td><Badge tone={c.status === "CLOSED" ? "green" : "blue"}>{statusLabels[c.status]}</Badge></td><td><button className="row-action" onClick={() => setSelectedCase(c)}>상세 보기 →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} onContinue={selectedCase.schemaVersion === 2 && selectedCase.status === "QUESTIONNAIRE_IN_PROGRESS" ? () => onResume(selectedCase) : undefined} />}</section>
   </div>;
 }
 

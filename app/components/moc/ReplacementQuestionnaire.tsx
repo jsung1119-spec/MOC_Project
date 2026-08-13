@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { criteriaForAsset, type AssetType } from "../../lib/moc/replacement-criteria";
 import { judgeReplacement, type ReplacementJudgmentResult } from "../../lib/moc/replacement-engine";
 import type { ComparisonValue } from "../../lib/moc/types";
@@ -11,10 +11,16 @@ const answers: Array<{ value: ComparisonValue; label: string; help: string }> = 
   { value: "UNKNOWN", label: "잘 모르겠음", help: "위원회 검토 필요로 기록됩니다." },
 ];
 
-export function ReplacementQuestionnaire({ assetType, targetName, onComplete, onTemporarySave, onBack }: { assetType: AssetType; targetName: string; onComplete: (result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) => void; onTemporarySave: (comparisons: Record<string, ComparisonValue>) => void; onBack: () => void }) {
+export function ReplacementQuestionnaire({ assetType, targetName, onComplete, onTemporarySave, onBack, initialComparisons, draftKey }: { assetType: AssetType; targetName: string; onComplete: (result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) => void; onTemporarySave: (comparisons: Record<string, ComparisonValue>) => void; onBack: () => void; initialComparisons?: Record<string, ComparisonValue>; draftKey?: string }) {
   const criteria = useMemo(() => criteriaForAsset(assetType), [assetType]);
   const [index, setIndex] = useState(0);
-  const [comparisons, setComparisons] = useState<Record<string, ComparisonValue>>({});
+  const [comparisons, setComparisons] = useState<Record<string, ComparisonValue>>(initialComparisons ?? {});
+  useEffect(() => {
+    const saved = initialComparisons ?? {};
+    setComparisons(saved);
+    const firstUnanswered = criteria.findIndex((criterion) => !saved[criterion.id]);
+    setIndex(firstUnanswered < 0 ? Math.max(0, criteria.length - 1) : firstUnanswered);
+  }, [draftKey, assetType, criteria, initialComparisons]);
   const current = criteria[index];
   if (!current) return <section className="question-card"><h1>적용 가능한 판정 기준이 없습니다.</h1><button className="btn primary" onClick={() => onComplete(judgeReplacement({ assetType, comparisons }), comparisons)}>위원회 검토로 기록</button></section>;
   const selected = comparisons[current.id];

@@ -4,9 +4,12 @@ import { readFile } from "node:fs/promises";
 
 const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-test("guideline cases open the process workspace from dashboard, history and Reminder", () => {
+test("guideline cases use the process workspace after judgment, while unfinished drafts resume their saved step", () => {
   assert.match(page, /c\.schemaVersion === 2 \? "process"/);
-  assert.match(page, /item\.schemaVersion === 2 \? "process"/);
+  assert.match(page, /function resumeGuidelineDraft/);
+  assert.match(page, /if \(!item\.replacementDecision\) return go\("new"\)/);
+  assert.match(page, /item\.replacementDecision\.result === "UNDETERMINED"\) return go\("replacement"\)/);
+  assert.match(page, /item\.replacementDecision\.result === "CHANGE" && !item\.gradeDecision\) return go\("grade"\)/);
 });
 
 test("approval updates the business approval record, not only a display status", () => {
