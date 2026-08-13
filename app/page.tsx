@@ -49,6 +49,10 @@ function daysFrom(date: string) { return Math.ceil((new Date(todayKey()).getTime
 function gradeLabel(c?: MocCase) { return c?.judgment?.grade === "NONE" || !c?.judgment ? "-" : `${c.judgment.grade}등급`; }
 function confirmedGrade(c: MocCase) { return c.judgment?.grade === "1" || c.judgment?.grade === "2" || c.judgment?.grade === "3"; }
 function chartEligible(c: MocCase) { return confirmedGrade(c) || c.judgment?.isMocTarget === false; }
+function isApprovalQueueCase(c: MocCase) {
+  if (!confirmedGrade(c) || c.replacementDecision?.result === "SIMPLE_REPLACEMENT" || c.approval?.approved) return false;
+  return approvalPendingStatuses.includes(c.status) || c.workflow?.status === "APPROVAL_PENDING";
+}
 
 function BrandLogo({ className = "" }: { className?: string }) {
   return <img className={`brand-logo ${className}`.trim()} src="/posco-future-m-ci-ko.png" alt="포스코퓨처엠" />;
@@ -102,7 +106,7 @@ export default function Home() {
   const activeQuestions = active ? visibleQuestions(active.answers, questionList, active.workType) : questionList;
   const gradeConfirmedCases = siteCases.filter(confirmedGrade);
   const reminders = remindersForCases(gradeConfirmedCases);
-  const approvalPendingCount = gradeConfirmedCases.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT").length;
+  const approvalPendingCount = siteCases.filter(isApprovalQueueCase).length;
 
   function notify(message: string) { setToast(message); setTimeout(() => setToast(""), 2600); }
   function updateCase(patch: Partial<MocCase>) {
@@ -124,7 +128,11 @@ export default function Home() {
     }));
     setTimeout(() => setSaveState("saved"), 480);
   }
-  function go(next: View) { setView(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function go(next: View) {
+    if (next !== "history") setFilter("");
+    setView(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   function resumeGuidelineDraft(item: MocCase) {
     setActiveId(item.id);
     if (item.schemaVersion !== 2) return go(item.judgment ? "documents" : "question");
@@ -592,7 +600,7 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
 }
 
 function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Question[]; onApprove: (id: string) => void }) {
-  const pending = items.filter(c => confirmedGrade(c) && approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT");
+  const pending = items.filter(isApprovalQueueCase);
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
     <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>

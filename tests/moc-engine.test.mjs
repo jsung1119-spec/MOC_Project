@@ -147,9 +147,18 @@ test("completed judgments remain on the result screen and enter the approval que
 test("approval navigation shows a selected-site pending count badge", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /const approvalPendingCount = gradeConfirmedCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\) && c\.replacementDecision\?\.result !== "SIMPLE_REPLACEMENT"\)\.length;/);
+  assert.match(page, /function isApprovalQueueCase/);
+  assert.match(page, /const approvalPendingCount = siteCases\.filter\(isApprovalQueueCase\)\.length;/);
   assert.match(page, /approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
+});
+
+test("dashboard chart filters are cleared when leaving the history screen", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const goBlock = page.match(/function go\(next: View\)[\s\S]*?\n  }/)?.[0] ?? "";
+
+  assert.match(goBlock, /if \(next !== "history"\) setFilter\(""\)/);
+  assert.match(page, /onHistory=\{\(chartFilter\) => \{ setFilter\(chartFilter \?\? ""\); go\("history"\); \}\}/);
 });
 
 test("new MOC cases require and persist a user-provided work title", async () => {
@@ -168,6 +177,7 @@ test("approval navigation reuses the Reminder badge and opens work details", asy
 
   assert.match(page, /item\.key === "approvals" && approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(approvalBlock, /const \[selectedCase, setSelectedCase\] = useState<MocCase \| null>\(null\)/);
+  assert.match(approvalBlock, /items\.filter\(isApprovalQueueCase\)/);
   assert.match(approvalBlock, /onClick=\{\(\) => setSelectedCase\(item\)\}/);
   assert.match(detailBlock, /전체 질문과 답변/);
   assert.match(detailBlock, /Object\.entries\(item\.answers\)/);

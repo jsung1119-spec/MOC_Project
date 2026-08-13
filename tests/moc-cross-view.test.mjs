@@ -29,7 +29,8 @@ test("review detail displays guideline basic info, comparison answers and grade 
 
 test("approval count excludes simple replacement and remains selected-site scoped", () => {
   assert.match(page, /siteCases\.filter/);
-  assert.match(page, /replacementDecision\?\.result !== "SIMPLE_REPLACEMENT"/);
+  assert.match(page, /c\.replacementDecision\?\.result === "SIMPLE_REPLACEMENT"/);
+  assert.match(page, /c\.workflow\?\.status === "APPROVAL_PENDING"/);
 });
 
 test("print output labels the document as guideline based instead of Mock", () => {
