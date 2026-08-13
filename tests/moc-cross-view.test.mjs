@@ -54,6 +54,16 @@ test("review detail can show the selected site in place of a case author", () =>
   assert.match(detail, /작성자 \{displaySite \?\? item\.author\}/);
 });
 
+test("work titles can be renamed from the detail opened by every history view", () => {
+  const detail = page.match(/function MocReviewDetail[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
+  assert.match(page, /function renameCase\(id: string, title: string\)/);
+  assert.match(page, /onRename=\{renameCase\}/);
+  assert.match(detail, /onRename\?: \(id: string, title: string\) => void/);
+  assert.match(detail, /새 작업명을 입력해 주세요/);
+  assert.match(detail, /onRename\(item\.id, nextTitle\)/);
+  assert.match(detail, /작업명 수정/);
+});
+
 test("print output labels the document as guideline based instead of Mock", () => {
   assert.doesNotMatch(page, /본 문서는 Mock 업무지침/);
   assert.match(page, /변경관리 지침 및 붙임 기준/);
