@@ -395,7 +395,7 @@ function TemporarySavePrompt({ onStay, onLeave }: { onStay: () => void; onLeave:
 }
 
 function EntryScreen({ onEnter }: { onEnter: () => void }) {
-  return <div className="entry-page"><section className="entry-card"><div className="entry-brand"><BrandLogo /></div><span className="security-chip">PSM 변경요소관리</span><h1>변경의 시작부터<br />안전한 완료까지</h1><p>사업장을 선택하고 변경요소관리 업무를 시작하세요.</p><button className="btn primary entry-button" onClick={onEnter}>입장 <span>→</span></button></section></div>;
+  return <div className="entry-page"><section className="entry-card"><div className="entry-brand"><BrandLogo /></div><span className="security-chip">PSM 변경요소관리</span><h1>변경의 시작부터<br />안전한 완료까지</h1><p>사업장을 선택하고 변경요소관리 업무를 시작하세요.</p><button className="btn primary entry-button" onClick={onEnter}>입장 <span>→</span></button></section><span className="entry-page-caption">POSCO FUTURE M · SAFECHANGE</span></div>;
 }
 
 function SiteSelector({ site, onSelect }: { site: Site | null; onSelect: (site: Site) => void }) {
