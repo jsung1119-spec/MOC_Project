@@ -223,6 +223,10 @@ export default function Home() {
     }));
     notify("공장장/리더 승인 처리가 완료되었습니다.");
   }
+  function snoozeReminder(id: string, until: string) {
+    setCases((current) => current.map((item) => item.id === id ? { ...item, reminderSnoozedUntil: until } : item));
+    notify(`${until.replaceAll("-", ". ")}까지 Reminder를 연기했습니다.`);
+  }
   function startGuidelineCase(info: MocBasicInfo, assetType: AssetType, destination: View = "replacement") {
     if (!selectedSite) return notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
     const id = `moc-${Date.now()}`;
@@ -390,7 +394,7 @@ export default function Home() {
     : view === "draft" && active ? <DraftForm item={active} saveState={saveState} onChange={(draft) => updateCase({ draft, title: draft.equipment || active.title, dueDate: draft.endDate || active.dueDate, status: "DOCUMENT_DRAFTING" })} onPreview={() => go("preview")} onBack={() => go("documents")} />
     : view === "preview" && active ? <Preview item={active} onEdit={() => go("draft")} onSubmit={() => { updateCase({ status: "SUBMITTED" }); notify("검토 담당자에게 제출되었습니다."); }} />
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
-    : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={continueCase} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
+    : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={continueCase} onSnooze={snoozeReminder} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
     : view === "history" ? <History items={siteCases} filter={filter} onFilter={setFilter} onContinue={continueCase} onRequestDelete={requestHistoryDeletion} />
     : view === "approvals" ? <Approvals items={siteCases} list={questionList} onApprove={approveCase} />
     : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
@@ -610,10 +614,29 @@ function Progress({ item, onNext, onContinue }: { item: MocCase; onNext: () => v
   </div>;
 }
 
-function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: string[]; onOpen: (c: MocCase) => void; onSend: (c: MocCase) => void }) {
-  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">FOLLOW-UP CENTER</span><h1>미완료 업무를 놓치지 마세요</h1><p>마감 임박·기한 초과·미제출 건을 한곳에서 관리합니다.</p></div><Badge tone="amber">{items.length}건 확인 필요</Badge></div>
-    <div className="reminder-tabs"><button className="active">전체 {items.length}</button><button>기한 초과 {items.filter(i => i.dueDate < todayKey()).length}</button><button>후속 조치</button><button>미제출</button></div>
-    <div className="reminder-list">{items.map(c => { const reasons = reminderReasonsForCase(c); const overdue = c.dueDate < todayKey(); return <div className="reminder-full card" key={c.id}><div className={cn("urgency", overdue ? "late" : "soon")}><b>{overdue ? `D+${daysFrom(c.dueDate)}` : `D-${Math.abs(daysFrom(c.dueDate))}`}</b><small>{overdue ? "기한 초과" : "후속 조치"}</small></div><div className="reminder-content"><div><Badge tone="gray">{c.caseNumber}</Badge><h2>{c.title}</h2><p>현재 단계: <b>{statusLabels[c.status]}</b> · 미완료: {reasons.join(", ")}</p></div><div className="due"><small>완료 예정일</small><b>{fmt(c.dueDate)}</b></div></div><div className="reminder-actions"><button className="btn ghost">알림 연기</button><button className="btn soft" disabled={logs.includes(c.id)} onClick={() => onSend(c)}>{logs.includes(c.id) ? "✓ 발송 완료" : "메일 로그 생성"}</button><button className="btn primary" onClick={() => onOpen(c)}>이어서 작성 →</button></div></div>; })}</div>
+function Reminders({ items, logs, onOpen, onSend, onSnooze }: { items: MocCase[]; logs: string[]; onOpen: (c: MocCase) => void; onSend: (c: MocCase) => void; onSnooze: (id: string, until: string) => void }) {
+  type ReminderTab = "ALL" | "OVERDUE" | "FOLLOW_UP" | "UNSUBMITTED";
+  const [tab, setTab] = useState<ReminderTab>("ALL");
+  const [snoozingId, setSnoozingId] = useState<string | null>(null);
+  const [snoozeDate, setSnoozeDate] = useState("");
+  const category = (item: MocCase): Exclude<ReminderTab, "ALL"> => {
+    if (["QUESTIONNAIRE_IN_PROGRESS", "DOCUMENT_DRAFTING", "READY_TO_SUBMIT"].includes(item.status)) return "UNSUBMITTED";
+    if (["APPROVED", "WORK_IN_PROGRESS", "WORK_COMPLETED"].includes(item.status)) return "FOLLOW_UP";
+    return "OVERDUE";
+  };
+  const shown = tab === "ALL" ? items : items.filter((item) => category(item) === tab);
+  const tabCount = (key: ReminderTab) => key === "ALL" ? items.length : items.filter((item) => category(item) === key).length;
+  const startSnooze = (item: MocCase) => { setSnoozingId(item.id); setSnoozeDate(item.reminderSnoozedUntil || ""); };
+  const saveSnooze = (id: string) => {
+    if (!snoozeDate || snoozeDate <= todayKey()) return;
+    onSnooze(id, snoozeDate);
+    setSnoozingId(null);
+    setSnoozeDate("");
+  };
+  const tabs: { key: ReminderTab; label: string }[] = [{ key: "ALL", label: "전체" }, { key: "OVERDUE", label: "기한 초과" }, { key: "FOLLOW_UP", label: "후속 조치" }, { key: "UNSUBMITTED", label: "미제출" }];
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">FOLLOW-UP CENTER</span><h1>미완료 업무를 놓치지 마세요</h1><p>완료 예정일이 지난 미완료 건을 상태별로 관리합니다.</p></div><Badge tone="amber">{items.length}건 확인 필요</Badge></div>
+    <div className="reminder-tabs">{tabs.map((item) => <button key={item.key} className={cn(tab === item.key && "active")} onClick={() => setTab(item.key)}>{item.label} {tabCount(item.key)}</button>)}</div>
+    <div className="reminder-list">{shown.length === 0 ? <section className="card empty-state"><b>표시할 Reminder가 없습니다.</b><p>다른 탭을 선택하거나 완료 예정일을 확인해 주세요.</p></section> : shown.map(c => { const reasons = reminderReasonsForCase(c); const overdue = c.dueDate < todayKey(); return <div className="reminder-full card" key={c.id}><div className={cn("urgency", overdue ? "late" : "soon")}><b>{overdue ? `D+${daysFrom(c.dueDate)}` : `D-${Math.abs(daysFrom(c.dueDate))}`}</b><small>{category(c) === "UNSUBMITTED" ? "미제출" : category(c) === "FOLLOW_UP" ? "후속 조치" : "기한 초과"}</small></div><div className="reminder-content"><div><Badge tone="gray">{c.caseNumber}</Badge><h2>{c.title}</h2><p>현재 단계: <b>{statusLabels[c.status]}</b> · 미완료: {reasons.join(", ")}</p></div><div className="due"><small>완료 예정일</small><b>{fmt(c.dueDate)}</b></div></div><div className="reminder-actions">{snoozingId === c.id ? <div className="snooze-control"><label>알림 재개일<input aria-label={`${c.title} 알림 재개일`} type="date" min={todayKey()} value={snoozeDate} onChange={(event) => setSnoozeDate(event.target.value)}/></label><button className="btn soft" disabled={!snoozeDate || snoozeDate <= todayKey()} onClick={() => saveSnooze(c.id)}>저장</button><button className="btn ghost" onClick={() => setSnoozingId(null)}>취소</button></div> : <button className="btn ghost" onClick={() => startSnooze(c)}>알림 연기</button>}<button className="btn soft" disabled={logs.includes(c.id)} onClick={() => onSend(c)}>{logs.includes(c.id) ? "✓ 발송 완료" : "메일 로그 생성"}</button><button className="btn primary" onClick={() => onOpen(c)}>이어서 작성 →</button></div></div>; })}</div>
     <section className="card mail-preview"><div><span>@</span><div><b>이메일 Reminder 예시</b><p>개발 환경에서는 실제 발송 대신 발송 이력을 기록합니다.</p></div></div><code>[알림] 변경요소관리 작성이 완료되지 않았습니다.<br/><br/>작업명 · 현재 진행 상태 · 미완료 항목 · 완료 예정일 · 서비스 바로가기</code></section>
   </div>;
 }

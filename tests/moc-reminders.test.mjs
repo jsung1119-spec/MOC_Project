@@ -17,3 +17,9 @@ test("Reminder includes only open work with an explicitly selected overdue due d
   assert.deepEqual(reminderReasonsForCase(items[0], today), ["완료 예정일 경과 후 미완료"]);
   assert.deepEqual(remindersForCases(items, today).map((item) => item.id), ["overdue"]);
 });
+
+test("a postponed Reminder stays hidden until its selected resume date", () => {
+  const item = { id: "snoozed", status: "WORK_IN_PROGRESS", dueDate: "2026-08-10", reminderSnoozedUntil: "2026-08-15" };
+  assert.deepEqual(remindersForCases([item], today), []);
+  assert.deepEqual(remindersForCases([item], "2026-08-16").map((caseItem) => caseItem.id), ["snoozed"]);
+});

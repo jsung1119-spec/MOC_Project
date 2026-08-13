@@ -73,6 +73,7 @@ export interface MocCase {
   temporaryRiskAssessmentCompleted?: boolean;
   temporarySiteTagInstalled?: boolean;
   temporaryRestored?: boolean;
+  reminderSnoozedUntil?: string;
   workflow?: { status: MocWorkflowStatus };
 }
 

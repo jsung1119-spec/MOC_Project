@@ -21,6 +21,7 @@ type ReminderCandidate = {
   approval?: { approved?: boolean };
   training?: { records?: { required?: boolean; completed?: boolean }[] };
   preStartupInspection?: { punchItems?: { completed?: boolean }[] };
+  reminderSnoozedUntil?: string;
 };
 
 const localDateKey = () => {
@@ -31,6 +32,7 @@ const localDateKey = () => {
 
 export const reminderReasonsForCase = (item: ReminderCandidate, today = localDateKey()) => {
   if (["CLOSED", "WORK_COMPLETED"].includes(item.status)) return [];
+  if (item.reminderSnoozedUntil && item.reminderSnoozedUntil >= today) return [];
   if (!item.dueDate || item.dueDate >= today) return [];
   return ["완료 예정일 경과 후 미완료"];
 };

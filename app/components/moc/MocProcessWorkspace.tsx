@@ -26,7 +26,8 @@ export function MocProcessWorkspace({ item: initialItem, onTemporarySave, onBack
   const nextActions = allowedWorkflowActions(domain);
   const committee = item.committee ?? { held: false, members: [], decision: null } as CommitteeRecord;
 
-  const updatePlan = (id: string, patch: Partial<ChecklistRecord>) => onChange({ implementationPlan: (item.implementationPlan ?? []).map((entry) => entry.id === id ? { ...entry, ...patch } : entry) });
+  const updatePlan = (id: string, patch: Partial<ChecklistRecord>) => onChange({ implementationPlan: (item.implementationPlan ?? []).map((entry) => entry.id === id ? { ...entry, ...patch, confirmed: patch.applicable === false || patch.applicable === null ? false : patch.confirmed ?? entry.confirmed } : entry) });
+  const updateAllApplicablePlans = (confirmed: boolean) => onChange({ implementationPlan: (item.implementationPlan ?? []).map((entry) => entry.applicable === true ? { ...entry, confirmed } : entry) });
   const updateDocument = (id: string, patch: Partial<ProcessSafetyDocumentRecord>) => onChange({ processSafetyDocuments: (item.processSafetyDocuments ?? []).map((entry) => entry.id === id ? { ...entry, ...patch } : entry) });
   const updateTraining = (id: string, patch: Partial<TrainingRecord>) => onChange({ training: { records: (item.training?.records ?? []).map((entry) => entry.id === id ? { ...entry, ...patch } : entry) } });
   const updateCommittee = (patch: Partial<CommitteeRecord>) => onChange({ committee: { ...committee, ...patch } });
@@ -40,7 +41,7 @@ export function MocProcessWorkspace({ item: initialItem, onTemporarySave, onBack
 
     <ProcessSection title="검토 및 승인" help={grade === "3" ? "3등급은 설비운전파트장이 자체 승인할 수 있습니다." : "위원회 검토 후 설비운영부서장 등의 승인이 필요합니다."}><div className="approval-action"><div><b>승인자</b><p>{grade === "3" ? "설비운전파트장" : "설비운영부서장 / 공장장"}</p></div><button className="btn primary" disabled={committeeRequired && item.committee?.decision !== "APPROVED"} onClick={() => onChange({ approval: { approved: true, approverRole: grade === "3" ? "설비운전파트장" : "설비운영부서장", approverName: "공장장/리더", approvedAt: new Date().toISOString() }, status: "APPROVED" })}>{item.approval?.approved ? "✓ 승인 완료" : "승인하기"}</button></div></ProcessSection>
 
-    <ProcessSection title="변경관리 실시 계획" help="첨부 2 양식을 체크리스트로 관리합니다."><ChecklistTable items={item.implementationPlan ?? []} onChange={updatePlan}/></ProcessSection>
+    <ProcessSection title="변경관리 실시 계획" help="첨부 2 양식을 체크리스트로 관리합니다."><ChecklistTable items={item.implementationPlan ?? []} onChange={updatePlan} onToggleAll={updateAllApplicablePlans}/></ProcessSection>
 
     <ProcessSection title="변경 실시" help="승인된 원안에 따라 작업을 실시합니다."><label className="completion-toggle"><input type="checkbox" checked={Boolean(item.workCompleted)} disabled={!item.approval?.approved} onChange={(event) => onChange({ workCompleted: event.target.checked, status: event.target.checked ? "WORK_COMPLETED" : "WORK_IN_PROGRESS" })}/><span>변경 작업 완료</span><small>승인 완료 후에만 기록할 수 있습니다.</small></label></ProcessSection>
 
@@ -65,12 +66,10 @@ function ProcessSection({ title, help, children }: { title: string; help: string
   return <details className="card process-section" open><summary><div><h2>{title}</h2><p>{help}</p></div><span>⌄</span></summary><div className="process-section-body">{children}</div></details>;
 }
 
-function ChecklistTable({ items, onChange }: { items: ChecklistRecord[]; onChange: (id: string, patch: Partial<ChecklistRecord>) => void }) {
-  const allConfirmed = items.length > 0 && items.every((entry) => entry.confirmed);
-  const toggleAllConfirmed = (confirmed: boolean) => items.forEach((entry) => {
-    onChange(entry.id, { confirmed });
-  });
-  return <div className="process-table-wrap"><table><thead><tr><th>PSM 요소</th><th>세부내용</th><th>대상</th><th>담당자</th><th>예정일</th><th>완료일</th><th><label className="check-all" title="모든 항목을 일괄 확인"><input aria-label="확인 항목 전체 선택" type="checkbox" checked={allConfirmed} disabled={items.length === 0} onChange={(event) => toggleAllConfirmed(event.target.checked)}/>확인</label></th></tr></thead><tbody>{items.map((entry) => <tr key={entry.id}><td className="psm-category"><b>{entry.category}</b></td><td><b>{entry.title}</b></td><td><select value={entry.applicable === null ? "" : entry.applicable ? "Y" : "N"} onChange={(event) => onChange(entry.id, { applicable: event.target.value === "" ? null : event.target.value === "Y" })}><option value="">-</option><option value="Y">Y</option><option value="N">N</option></select></td><td><input value={entry.owner ?? ""} onChange={(event) => onChange(entry.id, { owner: event.target.value })}/></td><td><input type="date" value={entry.plannedDate ?? ""} onInput={(event) => onChange(entry.id, { plannedDate: event.currentTarget.value })}/></td><td><input type="date" value={entry.completedDate ?? ""} onInput={(event) => onChange(entry.id, { completedDate: event.currentTarget.value })}/></td><td><input type="checkbox" checked={entry.confirmed} onChange={(event) => onChange(entry.id, { confirmed: event.target.checked })}/></td></tr>)}</tbody></table></div>;
+function ChecklistTable({ items, onChange, onToggleAll }: { items: ChecklistRecord[]; onChange: (id: string, patch: Partial<ChecklistRecord>) => void; onToggleAll: (confirmed: boolean) => void }) {
+  const applicableItems = items.filter((entry) => entry.applicable === true);
+  const allConfirmed = applicableItems.length > 0 && applicableItems.every((entry) => entry.confirmed);
+  return <div className="process-table-wrap"><table><thead><tr><th>PSM 요소</th><th>세부내용</th><th>대상</th><th>담당자</th><th>예정일</th><th>완료일</th><th><label className="check-all" title="Y 항목을 일괄 확인 또는 해제"><input aria-label="확인 항목 전체 선택" type="checkbox" checked={allConfirmed} disabled={applicableItems.length === 0} onChange={(event) => onToggleAll(event.target.checked)}/>확인</label></th></tr></thead><tbody>{items.map((entry) => <tr key={entry.id}><td className="psm-category"><b>{entry.category}</b></td><td><b>{entry.title}</b></td><td><select value={entry.applicable === null ? "" : entry.applicable ? "Y" : "N"} onChange={(event) => onChange(entry.id, { applicable: event.target.value === "" ? null : event.target.value === "Y" })}><option value="">-</option><option value="Y">Y</option><option value="N">N</option></select></td><td><input value={entry.owner ?? ""} onChange={(event) => onChange(entry.id, { owner: event.target.value })}/></td><td><input type="date" value={entry.plannedDate ?? ""} onInput={(event) => onChange(entry.id, { plannedDate: event.currentTarget.value })}/></td><td><input type="date" value={entry.completedDate ?? ""} onInput={(event) => onChange(entry.id, { completedDate: event.currentTarget.value })}/></td><td><input type="checkbox" checked={entry.confirmed} disabled={entry.applicable !== true} onChange={(event) => onChange(entry.id, { confirmed: event.target.checked })}/></td></tr>)}</tbody></table></div>;
 }
 
 function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {

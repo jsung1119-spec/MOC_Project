@@ -290,6 +290,17 @@ test("remindersForCases counts only open draft or due-soon cases in the selected
   assert.deepEqual(remindersForCases(items).map((item) => item.id), ["draft", "soon"]);
 });
 
+test("Reminder tabs and date-based postponement are interactive", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const reminderBlock = page.match(/function Reminders[\s\S]*?\n}\r?\n\r?\nfunction Approvals/)?.[0] ?? "";
+
+  assert.match(reminderBlock, /setTab\(item\.key\)/);
+  assert.match(reminderBlock, /FOLLOW_UP/);
+  assert.match(reminderBlock, /UNSUBMITTED/);
+  assert.match(reminderBlock, /type="date"/);
+  assert.match(reminderBlock, /onSnooze\(id, snoozeDate\)/);
+});
+
 test("createMocCase assigns a new case to the selected business site", () => {
   const created = createMocCase({
     id: "moc-new",
