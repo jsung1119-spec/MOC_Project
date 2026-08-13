@@ -34,9 +34,10 @@ test("approval count excludes simple replacement and remains selected-site scope
   assert.match(page, /function resolvedGrade\(c: MocCase\)/);
 });
 
-test("approval closes the selected detail so the approved work disappears from review", () => {
+test("approval removes work from the queue without forcibly closing the open detail", () => {
   const approvals = page.match(/function Approvals[\s\S]*?\n}\r?\n\r?\nfunction MocReviewDetail/)?.[0] ?? "";
-  assert.match(approvals, /onApprove\(item\.id\); setSelectedCase\(null\);/);
+  assert.match(approvals, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
+  assert.doesNotMatch(approvals, /onApprove\(item\.id\); setSelectedCase\(null\);/);
   assert.match(approvals, /items\.filter\(isApprovalQueueCase\)/);
 });
 

@@ -52,6 +52,13 @@ test("page routes guideline cases to the process workspace", async () => {
   const source = await read("../app/page.tsx");
   assert.match(source, /MocProcessWorkspace/);
   assert.match(source, /view === "process"/);
+  assert.match(source, /onApprove=\{approveCase\}/);
+});
+
+test("process workspace approval updates the shared approval queue", async () => {
+  const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
+  assert.match(source, /onApprove: \(id: string\) => void/);
+  assert.match(source, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
 });
 
 test("process workspace saves only through the temporary save action and supports bulk confirmation", async () => {
