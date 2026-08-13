@@ -243,7 +243,25 @@ test("dashboard donut charts use fixed work-type rainbow and grade colors", asyn
 test("dashboard charts use the requested MOC case count titles", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /작업유형별 변경관리 건수/);
+  assert.match(page, /변경관리 진행 건수/);
   assert.match(page, /등급별 변경관리 건수/);
+});
+
+test("dashboard uses Reminder overdue data and a period-filtered writing versus completed bar chart", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+
+  assert.match(page, /function reminderCategory/);
+  assert.match(page, /reminders\.filter\(\(item\) => reminderCategory\(item\) === "OVERDUE"\)/);
+  assert.match(page, /function ProgressBarChart/);
+  assert.match(page, /label: "작성 중"/);
+  assert.match(page, /label: "변경완료"/);
+  assert.match(page, /filter: "progress:WRITING"/);
+  assert.match(page, /filter: "progress:COMPLETED"/);
+  assert.match(page, /chartProgress = token\("progress:"\)/);
+  assert.match(page, /#7cc7ee/);
+  assert.match(page, /#1769aa/);
+  assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
 test("dashboard limits summary cards and charts to the recent five years with year and month filters", async () => {
