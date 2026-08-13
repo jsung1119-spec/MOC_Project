@@ -37,6 +37,7 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
+*.tsbuildinfo
 /dist/
 /.wrangler/
 /outputs/
@@ -45,6 +46,7 @@ next-env.d.ts
 /.npm-cache/
 /.node-*.zip
 /.devserver.*
+/.dev-server.*
 /.chrome-*/
 /.edge-*/
 /.sites-git/

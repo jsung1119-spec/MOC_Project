@@ -60,5 +60,5 @@ export function NewMocCaseForm({ onSubmit, onBack }: { onSubmit: (info: MocBasic
 }
 
 function GuidelineField({ label, value, onChange, error, area, type = "text" }: { label: string; value: string; onChange: (value: string) => void; error?: string; area?: boolean; type?: string }) {
-  return <label className={`field ${error ? "missing" : ""}`}><span>{label}<em>*</em></span>{area ? <textarea value={value} onChange={(event) => onChange(event.target.value)}/> : <input type={type} value={value} onChange={(event) => onChange(event.target.value)}/>} {error && <small className="field-error">{error}</small>}</label>;
+  return <label className={`field ${error ? "missing" : ""}`}><span>{label}<em>*</em></span>{area ? <textarea value={value} onChange={(event) => onChange(event.target.value)}/> : <input type={type} value={value} onInput={(event) => onChange(event.currentTarget.value)}/>} {error && <small className="field-error">{error}</small>}</label>;
 }
