@@ -5,7 +5,8 @@ import { readFile } from "node:fs/promises";
 const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
 test("guideline cases use the process workspace after judgment, while unfinished drafts resume their saved step", () => {
-  assert.match(page, /c\.schemaVersion === 2 \? "process"/);
+  assert.match(page, /function continueCase\(item: MocCase\)/);
+  assert.match(page, /if \(item\.schemaVersion === 2\) return go\(item\.replacementDecision\?\.result === "SIMPLE_REPLACEMENT" \? "guideline_result" : "process"\)/);
   assert.match(page, /function resumeGuidelineDraft/);
   assert.match(page, /if \(!item\.replacementDecision\) return go\("new"\)/);
   assert.match(page, /item\.replacementDecision\.result === "UNDETERMINED"\) return go\("replacement"\)/);
@@ -30,7 +31,7 @@ test("review detail displays guideline basic info, comparison answers and grade 
 test("approval count excludes simple replacement and remains selected-site scoped", () => {
   assert.match(page, /siteCases\.filter/);
   assert.match(page, /c\.replacementDecision\?\.result === "SIMPLE_REPLACEMENT"/);
-  assert.match(page, /c\.workflow\?\.status === "APPROVAL_PENDING"/);
+  assert.match(page, /function resolvedGrade\(c: MocCase\)/);
 });
 
 test("print output labels the document as guideline based instead of Mock", () => {

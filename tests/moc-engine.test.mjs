@@ -140,7 +140,7 @@ test("completed judgments remain on the result screen and enter the approval que
 
   assert.match(judgmentBlock, /status: "JUDGMENT_COMPLETED"/);
   assert.doesNotMatch(judgmentBlock, /go\("approvals"\)/);
-  assert.match(page, /\["JUDGMENT_COMPLETED", "SUBMITTED", "UNDER_REVIEW"\]/);
+  assert.match(page, /function isApprovalQueueCase\(c: MocCase\)/);
   assert.match(page, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
 });
 
@@ -150,7 +150,8 @@ test("approval navigation shows a selected-site pending count badge", async () =
   assert.match(page, /function isApprovalQueueCase/);
   assert.match(page, /const approvalPendingCount = siteCases\.filter\(isApprovalQueueCase\)\.length;/);
   assert.match(page, /approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
-  assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
+  assert.match(page, /function resolvedGrade\(c: MocCase\)/);
+  assert.match(page, /c\.approval\?\.approved/);
 });
 
 test("dashboard chart filters are cleared when leaving the history screen", async () => {
@@ -229,14 +230,17 @@ test("dashboard donut charts use fixed work-type rainbow and grade colors", asyn
   assert.match(page, /"비대상": "#8a949e"/);
 });
 
-test("temporary saved guideline questionnaires restore the basic, replacement, or grade step from history", async () => {
+test("history continuation uses the same route as dashboard continuation", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const basic = await readFile(new URL("../app/components/moc/NewMocCaseForm.tsx", import.meta.url), "utf8");
   const replacement = await readFile(new URL("../app/components/moc/ReplacementQuestionnaire.tsx", import.meta.url), "utf8");
   const grade = await readFile(new URL("../app/components/moc/GradeQuestionnaire.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /onResume=\{resumeGuidelineDraft\}/);
-  assert.match(page, /onContinue=\{selectedCase\.schemaVersion === 2 && selectedCase\.status === "QUESTIONNAIRE_IN_PROGRESS"/);
+  assert.match(page, /function continueCase\(item: MocCase\)/);
+  assert.match(page, /onOpen=\{continueCase\}/);
+  assert.match(page, /onContinue=\{continueCase\}/);
+  assert.match(page, /onClick=\{\(\) => c\.status === "CLOSED" \? setSelectedCase\(c\) : onContinue\(c\)\}/);
+  assert.match(page, /onContinue=\{selectedCase\.status !== "CLOSED" \? \(\) => onContinue\(selectedCase\) : undefined\}/);
   assert.match(basic, /initialInfo\?: MocBasicInfo/);
   assert.match(replacement, /initialComparisons\?: Record<string, ComparisonValue>/);
   assert.match(grade, /initialAnswers\?: Record<string, RuleAnswer>/);
