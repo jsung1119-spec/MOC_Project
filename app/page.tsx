@@ -60,7 +60,10 @@ function reminderCategory(item: MocCase): Exclude<ReminderTab, "ALL"> {
   if (["APPROVED", "WORK_IN_PROGRESS", "WORK_COMPLETED"].includes(item.status)) return "FOLLOW_UP";
   return "OVERDUE";
 }
-function isCompletedChange(item: MocCase) { return ["WORK_COMPLETED", "CLOSED"].includes(item.status); }
+function isCompletedChange(item: MocCase) {
+  const isNonTarget = item.replacementDecision?.result === "SIMPLE_REPLACEMENT" || item.judgment?.isMocTarget === false;
+  return isNonTarget || (confirmedGrade(item) && item.status === "CLOSED");
+}
 
 function BrandLogo({ className = "" }: { className?: string }) {
   return <img className={`brand-logo ${className}`.trim()} src="/posco-future-m-ci-ko.png" alt="포스코퓨처엠" />;
@@ -492,8 +495,8 @@ function Dashboard({ cases, site, reminders, onNew, onOpen, onRename, onReminder
   const typeData = countChartData(chartCases, (item) => item.workType);
   const gradeData = countChartData(chartCases, (item) => item.judgment?.isMocTarget === false ? "비대상" : `${item.judgment?.grade}등급`);
   const progressData = [
-    { label: "작성 중", count: chartCases.filter((item) => !isCompletedChange(item)).length, color: "#7cc7ee", filter: "progress:WRITING" },
-    { label: "변경완료", count: chartCases.filter(isCompletedChange).length, color: "#1769aa", filter: "progress:COMPLETED" },
+    { label: "작업 중", count: dashboardCases.filter((item) => !isCompletedChange(item)).length, color: "#7cc7ee", filter: "progress:WORKING" },
+    { label: "변경완료", count: dashboardCases.filter(isCompletedChange).length, color: "#1769aa", filter: "progress:COMPLETED" },
   ];
   const stats = [
     ["판단 진행 중", dashboardCases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy", "status:QUESTIONNAIRE_IN_PROGRESS"],
@@ -544,7 +547,7 @@ function DonutChart({ title, colorScheme, items, onSelect }: { title: string; co
 function ProgressBarChart({ items, onSelect }: { items: Array<{ label: string; count: number; color: string; filter: string }>; onSelect: (filter: string) => void }) {
   const max = Math.max(...items.map((item) => item.count), 1);
   const total = items.reduce((sum, item) => sum + item.count, 0);
-  return <section className="card progress-chart-card"><div><h2>변경관리 진행 건수</h2><p>최근 5년치만 보여드립니다. 선택한 기간의 등급 확정 건과 비대상 건을 작성 중·변경완료로 구분하며, 막대를 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="progress-bars">{items.map((item) => <button type="button" key={item.label} onClick={() => onSelect(item.filter)}><span className="progress-bar-track"><i style={{ height: `${Math.max((item.count / max) * 100, item.count ? 10 : 0)}%`, background: item.color }}/></span><b>{item.count}</b><small>{item.label}</small></button>)}</div><strong className="progress-chart-total">총 {total}건</strong></section>;
+  return <section className="card progress-chart-card"><div><h2>변경관리 진행 건수</h2><p>최근 5년치만 보여드립니다. 1~3등급은 최종 종결 전까지 작업 중이며, 비대상은 판정 확정 시 변경완료로 집계됩니다. 막대를 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="progress-bars">{items.map((item) => <button type="button" key={item.label} onClick={() => onSelect(item.filter)}><span className="progress-bar-track"><i style={{ height: `${Math.max((item.count / max) * 100, item.count ? 10 : 0)}%`, background: item.color }}/></span><b>{item.count}</b><small>{item.label}</small></button>)}</div><strong className="progress-chart-total">총 {total}건</strong></section>;
 }
 
 function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {
@@ -709,7 +712,7 @@ function History({ items, site, filter, onFilter, onContinue, onRename, onReques
     const chartOverdue = token("overdue:") === "true";
     const chartProgress = token("progress:");
     const textFilter = filterParts.find((part) => !/^(type|grade|target|period|status|overdue|progress):/.test(part)) ?? "";
-    const matchText = chartType ? c.workType === chartType : chartGrade ? resolvedGrade(c) === chartGrade : chartTarget ? (chartTarget === "비대상" && c.judgment?.isMocTarget === false) : chartStatuses.length ? chartStatuses.includes(c.status) : chartOverdue ? c.dueDate < todayKey() && c.status !== "CLOSED" : chartProgress === "COMPLETED" ? isCompletedChange(c) : chartProgress === "WRITING" ? !isCompletedChange(c) : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(textFilter.toLowerCase()));
+    const matchText = chartType ? c.workType === chartType : chartGrade ? resolvedGrade(c) === chartGrade : chartTarget ? (chartTarget === "비대상" && c.judgment?.isMocTarget === false) : chartStatuses.length ? chartStatuses.includes(c.status) : chartOverdue ? c.dueDate < todayKey() && c.status !== "CLOSED" : chartProgress === "COMPLETED" ? isCompletedChange(c) : chartProgress === "WORKING" ? !isCompletedChange(c) : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(textFilter.toLowerCase()));
     const matchPeriod = !chartPeriod || chartPeriod === "ALL" ? !chartPeriod || Number(c.createdAt.slice(0, 4)) >= new Date().getFullYear() - 4 : c.createdAt.startsWith(chartPeriod);
     const matchStart = !startDate || c.createdAt >= startDate;
     const matchEnd = !endDate || c.createdAt <= endDate;

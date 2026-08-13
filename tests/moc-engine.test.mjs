@@ -254,11 +254,14 @@ test("dashboard uses Reminder overdue data and a period-filtered writing versus 
   assert.match(page, /function reminderCategory/);
   assert.match(page, /reminders\.filter\(\(item\) => reminderCategory\(item\) === "OVERDUE"\)/);
   assert.match(page, /function ProgressBarChart/);
-  assert.match(page, /label: "작성 중"/);
+  assert.match(page, /label: "작업 중"/);
   assert.match(page, /label: "변경완료"/);
-  assert.match(page, /filter: "progress:WRITING"/);
+  assert.match(page, /filter: "progress:WORKING"/);
   assert.match(page, /filter: "progress:COMPLETED"/);
   assert.match(page, /chartProgress = token\("progress:"\)/);
+  assert.match(page, /replacementDecision\?\.result === "SIMPLE_REPLACEMENT"/);
+  assert.match(page, /item\.judgment\?\.isMocTarget === false/);
+  assert.match(page, /confirmedGrade\(item\) && item\.status === "CLOSED"/);
   assert.match(page, /#7cc7ee/);
   assert.match(page, /#1769aa/);
   assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
