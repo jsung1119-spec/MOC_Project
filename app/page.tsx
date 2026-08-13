@@ -403,7 +403,7 @@ export default function Home() {
     : view === "progress" && active ? <Progress item={active} onNext={() => { const i = flow.findIndex(s => s.key === active.status); const next = flow[Math.min(flow.length - 1, Math.max(0, i + 1))].key; updateCase({ status: next }); notify(`${statusLabels[next]} 상태로 변경했습니다.`); }} onContinue={() => go(active.judgment ? "documents" : "question")} />
     : view === "reminders" ? <Reminders items={reminders} logs={reminderLogs} onOpen={continueCase} onSnooze={snoozeReminder} onSend={(c) => { if (reminderLogs.includes(c.id)) return notify("오늘 이미 발송한 알림입니다."); setReminderLogs(v => [...v, c.id]); notify("Reminder 발송 로그를 기록했습니다."); }} />
     : view === "history" ? <History items={siteCases} site={selectedSite} filter={filter} onFilter={setFilter} onContinue={continueCase} onRequestDelete={requestHistoryDeletion} />
-    : view === "approvals" ? <Approvals items={siteCases} list={questionList} onApprove={approveCase} />
+    : view === "approvals" ? <Approvals items={siteCases} site={selectedSite} list={questionList} onApprove={approveCase} />
     : view === "admin" ? <Admin items={questionList} onChange={setQuestionList} /> : null;
 
   return (
@@ -648,15 +648,15 @@ function Reminders({ items, logs, onOpen, onSend, onSnooze }: { items: MocCase[]
   </div>;
 }
 
-function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Question[]; onApprove: (id: string) => void }) {
+function Approvals({ items, site, list, onApprove }: { items: MocCase[]; site: Site | null; list: Question[]; onApprove: (id: string) => void }) {
   const pending = items.filter(isApprovalQueueCase);
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
-    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
-    {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} />}</div>;
+    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {site ?? item.site}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
+    {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} displaySite={site} />}</div>;
 }
 
-function MocReviewDetail({ item, onClose, onContinue, questionList = questions }: { item: MocCase; onClose: () => void; onContinue?: () => void; questionList?: Question[] }) {
+function MocReviewDetail({ item, onClose, onContinue, questionList = questions, displaySite }: { item: MocCase; onClose: () => void; onContinue?: () => void; questionList?: Question[]; displaySite?: Site | null }) {
   const answered = Object.entries(item.answers);
   const comparisons = Object.entries(item.replacementDecision?.comparisons ?? {});
   const criteria = item.replacementDecision?.assetType ? criteriaForAsset(item.replacementDecision.assetType) : [];
@@ -666,7 +666,7 @@ function MocReviewDetail({ item, onClose, onContinue, questionList = questions }
   const targetLabel = item.replacementDecision?.result === "SIMPLE_REPLACEMENT" ? "단순 교체" : item.replacementDecision?.result === "CHANGE" ? "변경관리 대상" : item.judgment ? item.judgment.isMocTarget ? "대상" : "비대상" : "-";
   const grade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
   const evidences = item.gradeDecision?.matchedRules ?? item.replacementDecision?.matchedCriteria ?? item.judgment?.evidences ?? [];
-  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="detail-actions">{onContinue && <button className="btn primary" onClick={onContinue}>이어서 작성</button>}<button className="btn ghost" onClick={onClose}>닫기</button></div></div>
+  return <section className="card approval-detail"><div className="card-head"><div><span className="eyebrow">MOC REVIEW DETAIL</span><h2>{item.title}</h2><p>{item.caseNumber} · {item.workType} · 작성자 {displaySite ?? item.author}</p></div><div className="detail-actions">{onContinue && <button className="btn primary" onClick={onContinue}>이어서 작성</button>}<button className="btn ghost" onClick={onClose}>닫기</button></div></div>
     {item.basicInfo && <><h3>변경 기본정보</h3><div className="detail-summary detail-basic"><span>변경 사유<b>{item.basicInfo.reason || "-"}</b></span><span>대상 설비<b>{item.basicInfo.targetEquipment || "-"}</b></span><span>변경 구분<b>{item.basicInfo.changeKind === "EMERGENCY" ? "비상 변경" : "일반 변경"}</b></span><span>적용 기간<b>{item.basicInfo.duration === "TEMPORARY" ? "임시 변경" : "영구 변경"}</b></span></div><div className="before-after-detail"><div><small>변경 전 상태</small><p>{item.basicInfo.beforeState || "-"}</p>{item.basicInfo.beforeImageDataUrl && <img className="before-state-image" src={item.basicInfo.beforeImageDataUrl} alt="변경 전 상태 첨부 사진"/>}</div></div></>}
     <div className="detail-summary"><span>대상 여부<b>{decisionReady ? targetLabel : "-"}</b></span><span>등급<b>{decisionReady && grade && grade !== "UNDETERMINED" ? `${grade}등급` : "-"}</b></span><span>진행 상태<b>{item.workflow?.status ?? statusLabels[item.status]}</b></span></div>
     <h3>판단 근거</h3><ul className="evidence-list">{decisionReady && evidences.length ? evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>) : <li>-</li>}</ul>

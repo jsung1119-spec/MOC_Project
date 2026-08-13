@@ -43,6 +43,15 @@ test("approval removes work from the queue without forcibly closing the open det
   assert.match(approvals, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
   assert.doesNotMatch(approvals, /onApprove\(item\.id\); setSelectedCase\(null\);/);
   assert.match(approvals, /items\.filter\(isApprovalQueueCase\)/);
+  assert.match(approvals, /site: Site \| null/);
+  assert.match(approvals, /작성자 \{site \?\? item\.site\}/);
+  assert.match(approvals, /displaySite=\{site\}/);
+});
+
+test("review detail can show the selected site in place of a case author", () => {
+  const detail = page.match(/function MocReviewDetail[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
+  assert.match(detail, /displaySite\?: Site \| null/);
+  assert.match(detail, /작성자 \{displaySite \?\? item\.author\}/);
 });
 
 test("print output labels the document as guideline based instead of Mock", () => {
