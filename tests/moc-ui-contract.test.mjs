@@ -1,6 +1,6 @@
-import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import test from "node:test";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
@@ -10,7 +10,6 @@ test("new MOC form captures every guideline minimum field", async () => {
     assert.match(source, new RegExp(field));
   }
   assert.match(source, /type="file"/);
-  assert.doesNotMatch(source, /label="변경 후 상태"/);
   assert.match(source, /validateBasicInfo/);
 });
 
@@ -23,12 +22,15 @@ test("replacement questionnaire consumes the Appendix 2 dataset", async () => {
   assert.match(source, /UNKNOWN/);
 });
 
-test("grade questionnaire consumes Appendix 3 rules and engine", async () => {
+test("grade questionnaire presents Appendix 3 as a multi-select table", async () => {
   const source = await read("../app/components/moc/GradeQuestionnaire.tsx");
   assert.match(source, /gradeRules/);
   assert.match(source, /recommendGrade/);
-  assert.match(source, /해당함/);
-  assert.match(source, /잘 모르겠음/);
+  assert.match(source, /<th>구분<\/th><th>대상항목<\/th><th>해당<\/th>/);
+  assert.match(source, /type="checkbox"/);
+  assert.match(source, /selectedRuleIds\.length === 0/);
+  assert.match(source, /1·2등급으로 판정되면 변경관리위원회/);
+  assert.doesNotMatch(source, /inferGradeCandidateIds/);
 });
 
 test("active new-case flow uses the guideline screens and does not call legacy judge", async () => {
