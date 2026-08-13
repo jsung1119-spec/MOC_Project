@@ -204,6 +204,16 @@ test("history deletion supports selecting multiple cases and progress does not e
   assert.match(css, /\.timeline>div>\.btn\.primary\{display:none\}/);
 });
 
+test("history table shows the currently selected site in the author and department column", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const historyBlock = page.match(/function History[\s\S]*?\n}\r?\n\r?\nfunction Admin/)?.[0] ?? "";
+
+  assert.match(page, /<History items=\{siteCases\} site=\{selectedSite\}/);
+  assert.match(historyBlock, /site: Site \| null/);
+  assert.match(historyBlock, /<td>\{site \?\? c\.site\}<\/td>/);
+  assert.doesNotMatch(historyBlock, /<td>\{c\.author\}<small>\{c\.department\}<\/small><\/td>/);
+});
+
 test("admin rows allocate available width to their primary content", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
