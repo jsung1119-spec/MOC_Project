@@ -211,12 +211,19 @@ export default function Home() {
     setAdminPromptMode("access");
   }
   function approveCase(id: string) {
+    const candidate = cases.find((item) => item.id === id);
+    if (!candidate) return notify("승인할 작업을 찾을 수 없습니다. 목록을 새로 확인해 주세요.");
+    if (candidate.approval?.approved || candidate.status === "APPROVED") return notify("이미 승인 처리된 작업입니다.");
+    const grade = candidate.gradeDecision?.finalGrade ?? candidate.gradeDecision?.recommendedGrade;
+    if ((grade === "1" || grade === "2") && !candidate.committee?.held) return notify("1·2등급은 변경관리위원회를 개최한 후 심의 결과를 등록해야 승인할 수 있습니다.");
+    if ((grade === "1" || grade === "2") && candidate.committee?.decision === "REJECTED") return notify("변경관리위원회 심의 결과가 반려입니다. 보완 후 다시 심의해 주세요.");
+    if ((grade === "1" || grade === "2") && candidate.committee?.decision === "SUPPLEMENT_REQUIRED") return notify("변경관리위원회에서 보완을 요청했습니다. 보완 조치 후 심의 결과를 승인으로 등록해 주세요.");
+    if ((grade === "1" || grade === "2") && candidate.committee?.decision !== "APPROVED") return notify("1·2등급은 변경관리위원회 심의 결과를 ‘승인’으로 등록해야 승인할 수 있습니다.");
     setCases((current) => current.map((item) => {
       if (item.id !== id) return item;
       if (item.schemaVersion !== 2) return { ...item, status: "APPROVED" };
-      const grade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
-      if ((grade === "1" || grade === "2") && item.committee?.decision !== "APPROVED") return item;
-      const merged = { ...item, approval: { approved: true, approverRole: grade === "3" ? "설비운전파트장" : "설비운영부서장", approverName: "공장장/리더", approvedAt: new Date().toISOString() } } as MocCase;
+      const itemGrade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
+      const merged = { ...item, approval: { approved: true, approverRole: itemGrade === "3" ? "설비운전파트장" : "설비운영부서장", approverName: "공장장/리더", approvedAt: new Date().toISOString() } } as MocCase;
       merged.workflow = { status: deriveWorkflowStatus(merged as unknown as MocCaseV2) };
       merged.status = "APPROVED";
       return merged;

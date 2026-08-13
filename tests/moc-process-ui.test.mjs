@@ -59,6 +59,7 @@ test("process workspace approval updates the shared approval queue", async () =>
   const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
   assert.match(source, /onApprove: \(id: string\) => void/);
   assert.match(source, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
+  assert.doesNotMatch(source, /disabled=\{committeeRequired && item\.committee\?\.decision !== "APPROVED"\}/);
 });
 
 test("process workspace saves only through the temporary save action and supports bulk confirmation", async () => {

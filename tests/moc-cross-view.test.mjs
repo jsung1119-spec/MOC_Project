@@ -15,6 +15,10 @@ test("guideline cases use the process workspace after judgment, while unfinished
 
 test("approval updates the business approval record, not only a display status", () => {
   const approve = page.match(/function approveCase[\s\S]*?\n  }/)?.[0] ?? "";
+  assert.match(approve, /candidate = cases\.find/);
+  assert.match(approve, /committee\?\.decision === "REJECTED"/);
+  assert.match(approve, /위원회 심의 결과가 반려/);
+  assert.match(approve, /committee\?\.decision !== "APPROVED"/);
   assert.match(approve, /approval:/);
   assert.match(approve, /approverRole/);
   assert.match(approve, /deriveWorkflowStatus/);
