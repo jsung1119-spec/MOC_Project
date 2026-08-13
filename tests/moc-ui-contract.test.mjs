@@ -17,6 +17,8 @@ test("replacement questionnaire consumes the Appendix 2 dataset", async () => {
   const source = await read("../app/components/moc/ReplacementQuestionnaire.tsx");
   assert.match(source, /criteriaForAsset/);
   assert.match(source, /judgeReplacement/);
+  assert.match(source, /questionList/);
+  assert.match(source, /replacement:\$\{criterion\.id\}/);
   assert.match(source, /SAME/);
   assert.match(source, /DIFFERENT/);
   assert.match(source, /UNKNOWN/);
@@ -30,6 +32,7 @@ test("grade questionnaire presents Appendix 3 as a multi-select table", async ()
   assert.match(source, /type="checkbox"/);
   assert.match(source, /selectedRuleIds\.length === 0/);
   assert.match(source, /1·2등급으로 판정되면 변경관리위원회/);
+  assert.match(source, /grade:\$\{rule\.id\}/);
   assert.doesNotMatch(source, /inferGradeCandidateIds/);
 });
 

@@ -34,6 +34,12 @@ test("approval count excludes simple replacement and remains selected-site scope
   assert.match(page, /function resolvedGrade\(c: MocCase\)/);
 });
 
+test("approval closes the selected detail so the approved work disappears from review", () => {
+  const approvals = page.match(/function Approvals[\s\S]*?\n}\r?\n\r?\nfunction MocReviewDetail/)?.[0] ?? "";
+  assert.match(approvals, /onApprove\(item\.id\); setSelectedCase\(null\);/);
+  assert.match(approvals, /items\.filter\(isApprovalQueueCase\)/);
+});
+
 test("print output labels the document as guideline based instead of Mock", () => {
   assert.doesNotMatch(page, /본 문서는 Mock 업무지침/);
   assert.match(page, /변경관리 지침 및 붙임 기준/);

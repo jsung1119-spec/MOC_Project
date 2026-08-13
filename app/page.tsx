@@ -9,6 +9,7 @@ import {
 } from "./lib/moc";
 import { casesForSite, isSite, reminderReasonsForCase, remindersForCases, Site, sites } from "./lib/sites";
 import { criteriaForAsset, type AssetType } from "./lib/moc/replacement-criteria";
+import { managedQuestions, mergeManagedQuestions } from "./lib/moc/managed-questions";
 import type { GradeRecommendation } from "./lib/moc/grade-engine";
 import { gradeRules } from "./lib/moc/grade-rules";
 import type { ReplacementJudgmentResult } from "./lib/moc/replacement-engine";
@@ -75,14 +76,18 @@ export default function Home() {
   const [adminPromptMode, setAdminPromptMode] = useState<AdminPromptMode>("access");
   const [pendingHistoryDeleteIds, setPendingHistoryDeleteIds] = useState<string[]>([]);
   const [temporarySavePromptOpen, setTemporarySavePromptOpen] = useState(false);
-  const [questionList, setQuestionList] = useState<Question[]>(questions);
+  const [questionList, setQuestionList] = useState<Question[]>(managedQuestions);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("safechange-cases");
       const savedQuestions = localStorage.getItem("safechange-questions");
       if (saved) setCases(normalizeMocCases(JSON.parse(saved)).filter((item) => !LEGACY_SAMPLE_CASE_IDS.has(item.id)));
-      if (savedQuestions) setQuestionList(JSON.parse(savedQuestions));
+      if (savedQuestions) {
+        const savedCatalog = JSON.parse(savedQuestions) as Question[];
+        const isManagedCatalog = savedCatalog.some((question) => question.id.startsWith("replacement:") || question.id.startsWith("grade:"));
+        setQuestionList(isManagedCatalog ? savedCatalog : mergeManagedQuestions(savedCatalog));
+      }
       localStorage.removeItem("safechange-selected-site");
     } finally { setHydrated(true); }
   }, []);
@@ -374,8 +379,8 @@ export default function Home() {
 
   const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => { setActiveId(""); go("new"); }} onOpen={continueCase} onReminder={() => go("reminders")} onHistory={(chartFilter) => { setFilter(chartFilter ?? ""); go("history"); }} />
     : view === "new" ? <NewMocCaseForm draftKey={active?.id ?? "new"} initialInfo={active?.schemaVersion === 2 && !active.replacementDecision ? active.basicInfo : undefined} initialAssetType={active?.schemaVersion === 2 && !active.replacementDecision ? active.guidelineAssetType : undefined} onSubmit={continueFromBasicInfo} onTemporarySave={saveNewGuidelineDraft} onBack={() => go("dashboard")} />
-    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire draftKey={active.id} initialComparisons={active.replacementDecision?.comparisons} assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
-    : view === "grade" && active ? <GradeQuestionnaire draftKey={active.id} initialAnswers={active.answers as unknown as Record<string, "YES" | "NO" | "UNKNOWN">} workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
+    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire questionList={questionList} draftKey={active.id} initialComparisons={active.replacementDecision?.comparisons} assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
+    : view === "grade" && active ? <GradeQuestionnaire questionList={questionList} draftKey={active.id} initialAnswers={active.answers as unknown as Record<string, "YES" | "NO" | "UNKNOWN">} workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
     : view === "guideline_result" && active ? <MocDecisionResult item={active} onEdit={() => go("replacement")} onProcess={() => go("process")} onDashboard={() => go("dashboard")} />
     : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onTemporarySave={(draft) => { updateGuidelineCase(draft); notify("변경관리 진행 내용을 임시저장했습니다."); }} onBack={() => go("guideline_result")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
@@ -617,7 +622,7 @@ function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Questio
   const pending = items.filter(isApprovalQueueCase);
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
-    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
+    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => { onApprove(item.id); setSelectedCase(null); }}>승인하기</button></div>)}</section>
     {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} />}</div>;
 }
 
@@ -635,7 +640,7 @@ function MocReviewDetail({ item, onClose, onContinue, questionList = questions }
     {item.basicInfo && <><h3>변경 기본정보</h3><div className="detail-summary detail-basic"><span>변경 사유<b>{item.basicInfo.reason || "-"}</b></span><span>대상 설비<b>{item.basicInfo.targetEquipment || "-"}</b></span><span>변경 구분<b>{item.basicInfo.changeKind === "EMERGENCY" ? "비상 변경" : "일반 변경"}</b></span><span>적용 기간<b>{item.basicInfo.duration === "TEMPORARY" ? "임시 변경" : "영구 변경"}</b></span></div><div className="before-after-detail"><div><small>변경 전 상태</small><p>{item.basicInfo.beforeState || "-"}</p>{item.basicInfo.beforeImageDataUrl && <img className="before-state-image" src={item.basicInfo.beforeImageDataUrl} alt="변경 전 상태 첨부 사진"/>}</div></div></>}
     <div className="detail-summary"><span>대상 여부<b>{decisionReady ? targetLabel : "-"}</b></span><span>등급<b>{decisionReady && grade && grade !== "UNDETERMINED" ? `${grade}등급` : "-"}</b></span><span>진행 상태<b>{item.workflow?.status ?? statusLabels[item.status]}</b></span></div>
     <h3>판단 근거</h3><ul className="evidence-list">{decisionReady && evidences.length ? evidences.map(evidence => <li key={evidence.ruleId}>{evidence.title}<small>{evidence.description} · {evidence.guidelineSection}</small></li>) : <li>-</li>}</ul>
-    <h3>전체 질문과 답변</h3><ul className="answer-detail-list">{decisionReady ? <>{comparisons.map(([id, value]) => <li key={`comparison-${id}`}><span>{criteria.find(criterion => criterion.id === id)?.label ?? id}</span><b>{comparisonText(value)}</b></li>)}{answered.map(([id, value]) => { const question = questionList.find(question => question.id === id); const gradeRule = gradeRules.find(rule => rule.id === id); return <li key={id}><span>{gradeRule?.title ?? question?.text ?? id}</span><b>{answerText(value)}</b></li>; })}</> : <li><span>-</span><b>-</b></li>}</ul></section>;
+    <h3>전체 질문과 답변</h3><ul className="answer-detail-list">{decisionReady ? <>{comparisons.map(([id, value]) => <li key={`comparison-${id}`}><span>{questionList.find(question => question.id === `replacement:${id}`)?.text ?? criteria.find(criterion => criterion.id === id)?.label ?? id}</span><b>{comparisonText(value)}</b></li>)}{answered.map(([id, value]) => { const question = questionList.find(question => question.id === id) ?? questionList.find(question => question.id === `grade:${id}`); const gradeRule = gradeRules.find(rule => rule.id === id); return <li key={id}><span>{question?.text ?? gradeRule?.title ?? id}</span><b>{answerText(value)}</b></li>; })}</> : <li><span>-</span><b>-</b></li>}</ul></section>;
 }
 
 function History({ items, filter, onFilter, onContinue, onRequestDelete }: { items: MocCase[]; filter: string; onFilter: (v: string) => void; onContinue: (c: MocCase) => void; onRequestDelete: (ids: string[]) => void }) {

@@ -141,7 +141,7 @@ test("completed judgments remain on the result screen and enter the approval que
   assert.match(judgmentBlock, /status: "JUDGMENT_COMPLETED"/);
   assert.doesNotMatch(judgmentBlock, /go\("approvals"\)/);
   assert.match(page, /function isApprovalQueueCase\(c: MocCase\)/);
-  assert.match(page, /onClick=\{\(\) => onApprove\(item\.id\)\}/);
+  assert.match(page, /onApprove\(item\.id\); setSelectedCase\(null\);/);
 });
 
 test("approval navigation shows a selected-site pending count badge", async () => {
