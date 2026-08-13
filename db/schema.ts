@@ -12,11 +12,18 @@ export const users = sqliteTable("users", {
 });
 export const mocCases = sqliteTable("moc_cases", {
   id: text("id").primaryKey(), caseNumber: text("case_number").notNull().unique(),
+  site: text("site").notNull().default("포항라임공장"),
+  schemaVersion: integer("schema_version").notNull().default(1),
   title: text("title").notNull(), workType: text("work_type").notNull(),
   authorId: text("author_id").notNull(), department: text("department").notNull(),
   isMocTarget: integer("is_moc_target", { mode: "boolean" }), grade: text("grade"),
   riskLevel: text("risk_level"), status: text("status").notNull(),
   plannedStartDate: text("planned_start_date"), plannedEndDate: text("planned_end_date"),
+  basicInfoJson: text("basic_info_json").notNull().default("{}"),
+  replacementDecisionJson: text("replacement_decision_json"),
+  gradeDecisionJson: text("grade_decision_json"),
+  workflowJson: text("workflow_json").notNull().default("{}"),
+  businessRecordsJson: text("business_records_json").notNull().default("{}"),
   submittedAt: text("submitted_at"), completedAt: text("completed_at"), ...timestamps,
 });
 export const mocAnswers = sqliteTable("moc_answers", {

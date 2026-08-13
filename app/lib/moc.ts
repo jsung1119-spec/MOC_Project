@@ -1,4 +1,22 @@
 import { isSite, sites, type Site } from "./sites.ts";
+import type { AssetType } from "./moc/replacement-criteria.ts";
+import type {
+  ApprovalRecord, ChecklistRecord, CommitteeRecord, GradeDecision, MocBasicInfo,
+  MocWorkflowStatus, PreStartupInspection, ProcessSafetyDocumentRecord,
+  ReplacementDecision, TrainingRecord,
+} from "./moc/types.ts";
+
+export * from "./moc/types.ts";
+export { createEmptyMocCase } from "./moc/defaults.ts";
+export { normalizeMocCasesV2 } from "./moc/migration.ts";
+export * from "./moc/replacement-criteria.ts";
+export * from "./moc/replacement-engine.ts";
+export * from "./moc/grade-rules.ts";
+export * from "./moc/grade-engine.ts";
+export * from "./moc/forms.ts";
+export * from "./moc/validation.ts";
+export * from "./moc/workflow.ts";
+export * from "./moc/repository.ts";
 
 export type AnswerValue = "YES" | "NO" | "UNKNOWN" | "NOT_APPLICABLE";
 export type WorkType = "기계 설비" | "배관" | "전기" | "계장" | "운전조건" | "원료·화학물질" | "작업 절차" | "기타";
@@ -37,6 +55,25 @@ export interface MocCase {
   id: string; caseNumber: string; title: string; workType: WorkType; author: string;
   department: string; site: Site; status: MocStatus; createdAt: string; dueDate: string;
   answers: Record<string, AnswerValue>; judgment?: Judgment; draft: Draft;
+  schemaVersion?: 2;
+  basicInfo?: MocBasicInfo;
+  guidelineAssetType?: AssetType;
+  replacementDecision?: ReplacementDecision;
+  gradeDecision?: GradeDecision;
+  approval?: ApprovalRecord;
+  committee?: CommitteeRecord;
+  implementationPlan?: ChecklistRecord[];
+  reviewItems?: ChecklistRecord[];
+  processSafetyDocuments?: ProcessSafetyDocumentRecord[];
+  training?: { records: TrainingRecord[] };
+  preStartupInspection?: PreStartupInspection;
+  workCompleted?: boolean;
+  emergencyPostReviewCompleted?: boolean;
+  temporaryTechnicalReviewCompleted?: boolean;
+  temporaryRiskAssessmentCompleted?: boolean;
+  temporarySiteTagInstalled?: boolean;
+  temporaryRestored?: boolean;
+  workflow?: { status: MocWorkflowStatus };
 }
 
 export const questions: Question[] = [

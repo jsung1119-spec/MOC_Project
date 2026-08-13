@@ -147,7 +147,7 @@ test("completed judgments remain on the result screen and enter the approval que
 test("approval navigation shows a selected-site pending count badge", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(page, /const approvalPendingCount = siteCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\)\)\.length;/);
+  assert.match(page, /const approvalPendingCount = siteCases\.filter\(c => approvalPendingStatuses\.includes\(c\.status\) && c\.replacementDecision\?\.result !== "SIMPLE_REPLACEMENT"\)\.length;/);
   assert.match(page, /approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(page, /approvalPendingStatuses\.includes\(c\.status\)/);
 });
@@ -163,14 +163,15 @@ test("new MOC cases require and persist a user-provided work title", async () =>
 
 test("approval navigation reuses the Reminder badge and opens work details", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  const approvalBlock = page.match(/function Approvals[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
+  const approvalBlock = page.match(/function Approvals[\s\S]*?\n}\r?\n\r?\nfunction MocReviewDetail/)?.[0] ?? "";
+  const detailBlock = page.match(/function MocReviewDetail[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
 
   assert.match(page, /item\.key === "approvals" && approvalPendingCount > 0 && <em>\{approvalPendingCount\}<\/em>/);
   assert.match(approvalBlock, /const \[selectedCase, setSelectedCase\] = useState<MocCase \| null>\(null\)/);
   assert.match(approvalBlock, /onClick=\{\(\) => setSelectedCase\(item\)\}/);
-  assert.match(approvalBlock, /전체 질문과 답변/);
-  assert.match(approvalBlock, /Object\.entries\(selectedCase\.answers\)/);
-  assert.match(approvalBlock, /optionMeta\[answer\]\.label/);
+  assert.match(detailBlock, /전체 질문과 답변/);
+  assert.match(detailBlock, /Object\.entries\(item\.answers\)/);
+  assert.match(detailBlock, /replacementDecision\?\.comparisons/);
 });
 
 test("history deletion supports selecting multiple cases and progress does not expose manual advancement", async () => {
