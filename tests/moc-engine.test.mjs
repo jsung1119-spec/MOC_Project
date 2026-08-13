@@ -265,6 +265,9 @@ test("dashboard uses Reminder overdue data and a period-filtered writing versus 
   assert.match(page, /#7cc7ee/);
   assert.match(page, /#1769aa/);
   assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.donut-card,\.progress-chart-card\{padding:26px\}/);
+  assert.match(css, /\.donut-card h2,\.progress-chart-card h2\{font-size:19px\}/);
+  assert.match(css, /\.donut-card>div>p,\.progress-chart-card>div>p\{font-size:12px;line-height:1\.65\}/);
 });
 
 test("dashboard limits summary cards and charts to the recent five years with year and month filters", async () => {
