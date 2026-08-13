@@ -230,7 +230,7 @@ export default function Home() {
       site: selectedSite,
       author: legacy.author,
       department: legacy.department,
-      createdAt: legacy.createdAt,
+      createdAt: info.writtenDate || legacy.createdAt,
       dueDate: info.duration === "TEMPORARY" ? info.temporaryEndDate ?? legacy.dueDate : legacy.dueDate,
     });
     const item: MocCase = {
@@ -453,21 +453,29 @@ function Header({ view, site, onReturnToEntry }: { view: View; site: Site | null
 
 function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase) => void; onReminder: () => void; onHistory: (chartFilter?: string) => void }) {
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
-  const chartCases = cases.filter(chartEligible);
+  const currentYear = new Date().getFullYear();
+  const recentYears = Array.from({ length: 5 }, (_, index) => String(currentYear - index));
+  const [selectedYear, setSelectedYear] = useState("ALL");
+  const [selectedMonth, setSelectedMonth] = useState("ALL");
+  const periodKey = selectedYear === "ALL" ? "ALL" : selectedMonth === "ALL" ? selectedYear : `${selectedYear}-${selectedMonth}`;
+  const dashboardCases = cases.filter((item) => periodKey === "ALL" ? Number(item.createdAt.slice(0, 4)) >= currentYear - 4 : item.createdAt.startsWith(periodKey));
+  const chartCases = dashboardCases.filter(chartEligible);
   const typeData = countChartData(chartCases, (item) => item.workType);
   const gradeData = countChartData(chartCases, (item) => item.judgment?.isMocTarget === false ? "비대상" : `${item.judgment?.grade}등급`);
   const stats = [
-    ["판단 진행 중", cases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy"],
-    ["초안 작성 중", cases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue"],
-    ["제출 대기", cases.filter(c => c.status === "READY_TO_SUBMIT").length, "amber"],
-    ["검토 중", cases.filter(c => ["SUBMITTED", "UNDER_REVIEW"].includes(c.status)).length, "purple"],
-    ["승인 완료", cases.filter(c => ["APPROVED", "CLOSED"].includes(c.status)).length, "green"],
-    ["기한 초과", reminders.filter(c => c.dueDate < todayKey()).length, "red"],
+    ["판단 진행 중", dashboardCases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy", "status:QUESTIONNAIRE_IN_PROGRESS"],
+    ["초안 작성 중", dashboardCases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue", "status:DOCUMENT_DRAFTING"],
+    ["제출 대기", dashboardCases.filter(c => c.status === "READY_TO_SUBMIT").length, "amber", "status:READY_TO_SUBMIT"],
+    ["검토 중", dashboardCases.filter(c => ["SUBMITTED", "UNDER_REVIEW", "JUDGMENT_COMPLETED"].includes(c.status)).length, "purple", "status:SUBMITTED,UNDER_REVIEW,JUDGMENT_COMPLETED"],
+    ["승인 완료", dashboardCases.filter(c => ["APPROVED", "CLOSED"].includes(c.status)).length, "green", "status:APPROVED,CLOSED"],
+    ["기한 초과", dashboardCases.filter(c => c.dueDate < todayKey() && c.status !== "CLOSED").length, "red", "overdue:true"],
   ];
+  const historyFilter = (filter: string) => `period:${periodKey}|${filter}`;
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
-    <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
-    <section className="chart-grid"><DonutChart title="작업 유형별" colorScheme="workType" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" colorScheme="grade" items={gradeData} onSelect={(label) => onHistory(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`)}/></section>
+    <section className="dashboard-period"><div><b>대시보드 집계 기간</b><small>최근 5년치만 보여드립니다.</small></div><div><select value={selectedYear} onChange={(event) => { setSelectedYear(event.target.value); setSelectedMonth("ALL"); }}><option value="ALL">전체</option>{recentYears.map((year) => <option key={year} value={year}>{year}년</option>)}</select><select value={selectedMonth} disabled={selectedYear === "ALL"} onChange={(event) => setSelectedMonth(event.target.value)}><option value="ALL">전체</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => <option key={month} value={month}>{Number(month)}월</option>)}</select></div></section>
+    <section className="stats-grid">{stats.map(([label, count, color, filterKey]) => <button type="button" className={`stat ${color} ${Number(count) > 0 ? "clickable" : ""}`} disabled={Number(count) === 0} key={String(label)} onClick={() => onHistory(historyFilter(String(filterKey)))}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></button>)}</section>
+    <section className="chart-grid"><DonutChart title="작업 유형별" colorScheme="workType" items={typeData} onSelect={(label) => onHistory(historyFilter(`type:${label}`))}/><DonutChart title="등급별" colorScheme="grade" items={gradeData} onSelect={(label) => onHistory(historyFilter(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`))}/></section>
     <section className="dashboard-grid">
       <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
         <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
@@ -497,7 +505,7 @@ function DonutChart({ title, colorScheme, items, onSelect }: { title: string; co
   const total = items.reduce((sum, item) => sum + item.count, 0);
   let point = 0;
   const gradient = total ? items.map((item) => { const start = point; point += (item.count / total) * 100; return `${colorFor(item.label)} ${start}% ${point}%`; }).join(", ") : "#e8eef2 0 100%";
-  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건과 비대상 건을 표시합니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>집계 건</small></div><div className="donut-legend">{items.length ? items.map((item) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colorFor(item.label) }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 또는 비대상 이력이 없습니다.</p>}</div></div></section>;
+  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>최근 5년치만 보여드립니다. 선택한 기간의 등급 확정 건과 비대상 건을 표시하며, 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>집계 건</small></div><div className="donut-legend">{items.length ? items.map((item) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colorFor(item.label) }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 또는 비대상 이력이 없습니다.</p>}</div></div></section>;
 }
 
 function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {
@@ -638,17 +646,24 @@ function History({ items, filter, onFilter, onContinue, onRequestDelete }: { ite
   const [target, setTarget] = useState("전체");
   const [status, setStatus] = useState("전체");
   const shown = items.filter(c => {
-    const chartType = filter.startsWith("type:") ? filter.slice(5) : "";
-    const chartGrade = filter.startsWith("grade:") ? filter.slice(6) : "";
-    const chartTarget = filter.startsWith("target:") ? filter.slice(7) : "";
-    const matchText = chartType ? c.workType === chartType : chartGrade ? c.judgment?.grade === chartGrade : chartTarget ? (chartTarget === "비대상" && c.judgment?.isMocTarget === false) : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
+    const filterParts = filter.split("|");
+    const token = (prefix: string) => filterParts.find((part) => part.startsWith(prefix))?.slice(prefix.length) ?? "";
+    const chartType = token("type:");
+    const chartGrade = token("grade:");
+    const chartTarget = token("target:");
+    const chartPeriod = token("period:");
+    const chartStatuses = token("status:").split(",").filter(Boolean);
+    const chartOverdue = token("overdue:") === "true";
+    const textFilter = filterParts.find((part) => !/^(type|grade|target|period|status|overdue):/.test(part)) ?? "";
+    const matchText = chartType ? c.workType === chartType : chartGrade ? resolvedGrade(c) === chartGrade : chartTarget ? (chartTarget === "비대상" && c.judgment?.isMocTarget === false) : chartStatuses.length ? chartStatuses.includes(c.status) : chartOverdue ? c.dueDate < todayKey() && c.status !== "CLOSED" : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(textFilter.toLowerCase()));
+    const matchPeriod = !chartPeriod || chartPeriod === "ALL" ? !chartPeriod || Number(c.createdAt.slice(0, 4)) >= new Date().getFullYear() - 4 : c.createdAt.startsWith(chartPeriod);
     const matchStart = !startDate || c.createdAt >= startDate;
     const matchEnd = !endDate || c.createdAt <= endDate;
     const matchType = workType === "전체" || c.workType === workType;
     const value = c.judgment ? (c.judgment.isMocTarget ? "대상" : "비대상") : "미판단";
     const matchTarget = target === "전체" || value === target;
     const matchStatus = status === "전체" || (status === "완료" ? ["APPROVED", "CLOSED"].includes(c.status) : !["APPROVED", "CLOSED"].includes(c.status));
-    return matchText && matchStart && matchEnd && matchType && matchTarget && matchStatus;
+    return matchText && matchPeriod && matchStart && matchEnd && matchType && matchTarget && matchStatus;
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const toggleSelected = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);

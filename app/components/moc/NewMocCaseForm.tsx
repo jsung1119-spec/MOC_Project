@@ -24,7 +24,7 @@ const assetOptions: Array<{ value: AssetType; label: string; workTypes: WorkType
 ];
 
 const empty: MocBasicInfo = {
-  title: "", reason: "", description: "", targetEquipment: "", workType: "기계 설비",
+  title: "", writtenDate: new Date().toISOString().slice(0, 10), reason: "", description: "", targetEquipment: "", workType: "기계 설비",
   beforeState: "", changeKind: "NORMAL", duration: "PERMANENT",
 };
 
@@ -52,6 +52,7 @@ export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack, initialInfo,
     <section className="question-card start-card"><span className="eyebrow">STEP 01 · 변경 발의</span><h1>변경사항을 먼저 알려주세요</h1><p>변경판정과 등급판정에 필요한 기본정보입니다. 입력 내용은 이후 변경 요청/승인서에도 사용됩니다.</p>
       <div className="form-grid">
         <GuidelineField label="변경 제목" value={info.title} onChange={(value) => set("title", value)} error={errorFor("title")?.message}/>
+        <GuidelineField type="date" label="작성일자" value={info.writtenDate ?? ""} onChange={(value) => set("writtenDate", value)}/>
         <label className="field"><span>변경 대상 분야</span><select value={info.workType} onChange={(event) => { const value = event.target.value as WorkType; set("workType", value); const first = assetOptions.find((option) => option.workTypes.includes(value)); if (first) setAssetType(first.value); }}>{workTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
         <GuidelineField label="대상 설비 / 공정" value={info.targetEquipment} onChange={(value) => set("targetEquipment", value)} error={errorFor("targetEquipment")?.message}/>
         <label className="field"><span>세부 판정 대상</span><select value={assetType} onChange={(event) => setAssetType(event.target.value as AssetType)}>{assets.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>

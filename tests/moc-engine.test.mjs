@@ -230,6 +230,18 @@ test("dashboard donut charts use fixed work-type rainbow and grade colors", asyn
   assert.match(page, /"비대상": "#8a949e"/);
 });
 
+test("dashboard limits summary cards and charts to the recent five years with year and month filters", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(page, /const recentYears = Array\.from\(\{ length: 5 \}/);
+  assert.match(page, /최근 5년치만 보여드립니다/);
+  assert.match(page, /const \[selectedYear, setSelectedYear\] = useState\("ALL"\)/);
+  assert.match(page, /const \[selectedMonth, setSelectedMonth\] = useState\("ALL"\)/);
+  assert.match(page, /period:\$\{periodKey\}/);
+  assert.match(page, /className=\{`stat \$\{color\} \$\{Number\(count\) > 0 \? "clickable" : ""\}`\}/);
+  assert.match(page, /chartStatuses = token\("status:"\)/);
+});
+
 test("history continuation uses the same route as dashboard continuation", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const basic = await readFile(new URL("../app/components/moc/NewMocCaseForm.tsx", import.meta.url), "utf8");
