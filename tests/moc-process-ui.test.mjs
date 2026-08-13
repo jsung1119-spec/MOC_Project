@@ -61,6 +61,8 @@ test("process workspace saves only through the temporary save action and support
   assert.match(source, /setItem\(\(current\)/);
   assert.match(source, /toggleAllConfirmed/);
   assert.match(source, /확인 항목 전체 선택/);
+  assert.match(source, /items\.forEach\(\(entry\) => \{/);
+  assert.doesNotMatch(source, /entry\.applicable !== null\) onChange/);
   assert.match(source, /완료 예정일/);
   assert.match(source, /임시저장 버튼을 누른 경우에만 저장/);
 });
