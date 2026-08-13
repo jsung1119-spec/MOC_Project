@@ -47,6 +47,7 @@ function fmt(date: string) { return date ? date.replaceAll("-", ". ") : "-"; }
 function todayKey() { const now = new Date(); return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10); }
 function daysFrom(date: string) { return Math.ceil((new Date(todayKey()).getTime() - new Date(date).getTime()) / 86400000); }
 function gradeLabel(c?: MocCase) { return c?.judgment?.grade === "NONE" || !c?.judgment ? "-" : `${c.judgment.grade}등급`; }
+function confirmedGrade(c: MocCase) { return c.judgment?.grade === "1" || c.judgment?.grade === "2" || c.judgment?.grade === "3"; }
 
 function BrandLogo({ className = "" }: { className?: string }) {
   return <img className={`brand-logo ${className}`.trim()} src="/posco-future-m-ci-ko.png" alt="포스코퓨처엠" />;
@@ -98,8 +99,9 @@ export default function Home() {
   const siteCases = selectedSite ? casesForSite(cases, selectedSite) : [];
   const active = siteCases.find(c => c.id === activeId);
   const activeQuestions = active ? visibleQuestions(active.answers, questionList, active.workType) : questionList;
-  const reminders = remindersForCases(siteCases);
-  const approvalPendingCount = siteCases.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT").length;
+  const gradeConfirmedCases = siteCases.filter(confirmedGrade);
+  const reminders = remindersForCases(gradeConfirmedCases);
+  const approvalPendingCount = gradeConfirmedCases.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT").length;
 
   function notify(message: string) { setToast(message); setTimeout(() => setToast(""), 2600); }
   function updateCase(patch: Partial<MocCase>) {
@@ -334,7 +336,7 @@ export default function Home() {
   if (!hydrated) return <div className="loading">SafeChange를 준비하고 있습니다…</div>;
   if (!entered) return <EntryScreen onEnter={enterApplication} />;
 
-  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={() => go("history")} />
+  const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={(chartFilter) => { setFilter(chartFilter ?? ""); go("history"); }} />
     : view === "new" ? <NewMocCaseForm onSubmit={startGuidelineCase} onTemporarySave={saveNewGuidelineDraft} onBack={() => go("dashboard")} />
     : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
     : view === "grade" && active ? <GradeQuestionnaire workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
@@ -413,8 +415,11 @@ function Header({ view, site, onReturnToEntry }: { view: View; site: Site | null
   return <header className="topbar"><div><span className="crumb">PSM 변경요소관리</span><b>{titles[view] || "MOC 업무 지원"}</b></div><div className="header-actions"><button type="button" className="btn ghost" onClick={onReturnToEntry}>처음 화면으로</button><div className="site-context"><span>⌖</span><div><small>선택 사업장</small><b>{site ?? "사업장을 선택해 주세요"}</b></div></div></div></header>;
 }
 
-function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase, v?: View) => void; onReminder: () => void; onHistory: () => void }) {
+function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase, v?: View) => void; onReminder: () => void; onHistory: (chartFilter?: string) => void }) {
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
+  const chartCases = cases.filter(confirmedGrade);
+  const typeData = countChartData(chartCases, (item) => item.workType);
+  const gradeData = countChartData(chartCases, (item) => `${item.judgment?.grade}등급`);
   const stats = [
     ["판단 진행 중", cases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy"],
     ["초안 작성 중", cases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue"],
@@ -426,8 +431,9 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
+    <section className="chart-grid"><DonutChart title="작업 유형별" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" items={gradeData} onSelect={(label) => onHistory(`grade:${label.replace("등급", "")}`)}/></section>
     <section className="dashboard-grid">
-      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={onHistory}>전체 보기 →</button></div>
+      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
         <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
       </div>
       <div className="card reminder-card"><div className="card-head"><div><span className="mini-icon amber">!</span><h2>미완료 Reminder</h2></div><Badge tone="amber">{reminders.length}건</Badge></div>
@@ -437,6 +443,18 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
     </section>
     <section className="safety-note"><span>✓</span><div><b>판단 전 확인해 주세요</b><p>이 시스템의 결과는 업무지침 기반 작성 지원 결과입니다. 최종 판정은 담당자 검토가 필요할 수 있습니다.</p></div><button>업무지침 보기 →</button></section>
   </div>;
+}
+
+function countChartData(items: MocCase[], getLabel: (item: MocCase) => string) {
+  return Array.from(items.reduce((map, item) => map.set(getLabel(item), (map.get(getLabel(item)) ?? 0) + 1), new Map<string, number>())).map(([label, count]) => ({ label, count }));
+}
+
+function DonutChart({ title, items, onSelect }: { title: string; items: Array<{ label: string; count: number }>; onSelect: (label: string) => void }) {
+  const colors = ["#1476b8", "#2c9c79", "#7b59ae", "#e58a15", "#d9464a", "#54748c"];
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+  let point = 0;
+  const gradient = total ? items.map((item, index) => { const start = point; point += (item.count / total) * 100; return `${colors[index % colors.length]} ${start}% ${point}%`; }).join(", ") : "#e8eef2 0 100%";
+  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건만 표시됩니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>확정 건</small></div><div className="donut-legend">{items.length ? items.map((item, index) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colors[index % colors.length] }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 이력이 없습니다.</p>}</div></div></section>;
 }
 
 function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {
@@ -545,7 +563,7 @@ function Reminders({ items, logs, onOpen, onSend }: { items: MocCase[]; logs: st
 }
 
 function Approvals({ items, list, onApprove }: { items: MocCase[]; list: Question[]; onApprove: (id: string) => void }) {
-  const pending = items.filter(c => approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT");
+  const pending = items.filter(c => confirmedGrade(c) && approvalPendingStatuses.includes(c.status) && c.replacementDecision?.result !== "SIMPLE_REPLACEMENT");
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
     <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {item.author}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
@@ -577,7 +595,9 @@ function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: 
   const [target, setTarget] = useState("전체");
   const [status, setStatus] = useState("전체");
   const shown = items.filter(c => {
-    const matchText = [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
+    const chartType = filter.startsWith("type:") ? filter.slice(5) : "";
+    const chartGrade = filter.startsWith("grade:") ? filter.slice(6) : "";
+    const matchText = chartType ? c.workType === chartType : chartGrade ? c.judgment?.grade === chartGrade : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
     const matchStart = !startDate || c.createdAt >= startDate;
     const matchEnd = !endDate || c.createdAt <= endDate;
     const matchType = workType === "전체" || c.workType === workType;
