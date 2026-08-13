@@ -54,6 +54,16 @@ test("review detail can show the selected site in place of a case author", () =>
   assert.match(detail, /작성자 \{displaySite \?\? item\.author\}/);
 });
 
+test("every work-detail entry point passes the selected site as its author label", () => {
+  const dashboard = page.match(/function Dashboard[\s\S]*?\n}\r?\n\r?\nfunction countChartData/)?.[0] ?? "";
+  const history = page.match(/function History[\s\S]*?\n}\r?\n\r?\nfunction Admin/)?.[0] ?? "";
+
+  assert.match(page, /<Dashboard cases=\{siteCases\} site=\{selectedSite\}/);
+  assert.match(dashboard, /site: Site \| null/);
+  assert.match(dashboard, /displaySite=\{site\}/);
+  assert.match(history, /displaySite=\{site\}/);
+});
+
 test("work titles can be renamed from the detail opened by every history view", () => {
   const detail = page.match(/function MocReviewDetail[\s\S]*?\n}\r?\n\r?\nfunction History/)?.[0] ?? "";
   assert.match(page, /function renameCase\(id: string, title: string\)/);
