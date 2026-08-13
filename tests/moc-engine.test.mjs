@@ -230,6 +230,12 @@ test("dashboard donut charts use fixed work-type rainbow and grade colors", asyn
   assert.match(page, /"비대상": "#8a949e"/);
 });
 
+test("dashboard charts use the requested MOC case count titles", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /작업유형별 변경관리 건수/);
+  assert.match(page, /등급별 변경관리 건수/);
+});
+
 test("dashboard limits summary cards and charts to the recent five years with year and month filters", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
