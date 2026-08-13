@@ -231,7 +231,7 @@ export default function Home() {
       author: legacy.author,
       department: legacy.department,
       createdAt: info.writtenDate || legacy.createdAt,
-      dueDate: info.duration === "TEMPORARY" ? info.temporaryEndDate ?? legacy.dueDate : legacy.dueDate,
+      dueDate: info.duration === "TEMPORARY" ? info.temporaryEndDate ?? "" : "",
     });
     const item: MocCase = {
       ...legacy,
@@ -377,7 +377,7 @@ export default function Home() {
     : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire draftKey={active.id} initialComparisons={active.replacementDecision?.comparisons} assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
     : view === "grade" && active ? <GradeQuestionnaire draftKey={active.id} initialAnswers={active.answers as unknown as Record<string, "YES" | "NO" | "UNKNOWN">} workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
     : view === "guideline_result" && active ? <MocDecisionResult item={active} onEdit={() => go("replacement")} onProcess={() => go("process")} onDashboard={() => go("dashboard")} />
-    : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onChange={updateGuidelineCase} onBack={() => go("guideline_result")} />
+    : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onTemporarySave={(draft) => { updateGuidelineCase(draft); notify("변경관리 진행 내용을 임시저장했습니다."); }} onBack={() => go("guideline_result")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
     : view === "review" && active ? <Review item={active} list={activeQuestions} onEdit={(i) => { setQuestionIndex(i); go("question"); }} onBack={() => go("question")} onJudge={runJudgment} />
     : view === "result" && active ? <Result item={active} onEdit={() => go("review")} onDocs={() => go("documents")} onPrint={() => go("preview")} onReview={() => { updateCase({ status: "SUBMITTED" }); notify("담당자 검토 요청을 기록했습니다."); }} />

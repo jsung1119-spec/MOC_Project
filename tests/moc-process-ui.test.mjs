@@ -53,3 +53,14 @@ test("page routes guideline cases to the process workspace", async () => {
   assert.match(source, /MocProcessWorkspace/);
   assert.match(source, /view === "process"/);
 });
+
+test("process workspace saves only through the temporary save action and supports bulk confirmation", async () => {
+  const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
+  assert.match(source, /onTemporarySave/);
+  assert.match(source, /임시저장/);
+  assert.match(source, /setItem\(\(current\)/);
+  assert.match(source, /toggleAllConfirmed/);
+  assert.match(source, /확인 항목 전체 선택/);
+  assert.match(source, /완료 예정일/);
+  assert.match(source, /임시저장 버튼을 누른 경우에만 저장/);
+});

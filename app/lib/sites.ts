@@ -31,28 +31,8 @@ const localDateKey = () => {
 
 export const reminderReasonsForCase = (item: ReminderCandidate, today = localDateKey()) => {
   if (["CLOSED", "WORK_COMPLETED"].includes(item.status)) return [];
-
-  const reasons: string[] = [];
-  if (item.status === "DOCUMENT_DRAFTING") reasons.push("초안 작성 후 미제출");
-  if (item.dueDate && item.dueDate <= today) reasons.push("완료 예정일 경과");
-  if (item.basicInfo?.changeKind === "EMERGENCY" && item.emergencyPostReviewCompleted === false) {
-    reasons.push("비상 변경 사후 검토 미완료");
-  }
-  if (
-    item.basicInfo?.duration === "TEMPORARY" &&
-    item.basicInfo.temporaryEndDate &&
-    item.basicInfo.temporaryEndDate < today &&
-    item.temporaryRestored === false
-  ) {
-    reasons.push("임시 변경 기한 경과 및 원상복구 미완료");
-  }
-  if (item.approval?.approved && item.training?.records?.some((record) => record.required && !record.completed)) {
-    reasons.push("필수 교육 미완료");
-  }
-  if (item.preStartupInspection?.punchItems?.some((punch) => !punch.completed)) {
-    reasons.push("Punch List 조치 미완료");
-  }
-  return reasons;
+  if (!item.dueDate || item.dueDate >= today) return [];
+  return ["완료 예정일 경과 후 미완료"];
 };
 
 export const remindersForCases = <T extends ReminderCandidate>(items: T[], today = localDateKey()) =>
