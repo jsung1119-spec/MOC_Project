@@ -261,7 +261,7 @@ export default function Home() {
     if (!active) return;
     const recommended = result.recommendedGrade;
     const requiredDocumentIds = recommended === "1" || recommended === "2"
-      ? ["변경 요청/승인서", "변경관리 실시 계획서", "공정위험성평가", "변경 검토사항", "교육 결과", "가동전 점검 결과"]
+      ? ["변경 요청/승인서", "변경관리 실시 계획서", "공정위험성평가", "교육 결과", "가동전 점검 결과"]
       : recommended === "3" ? ["변경 요청/승인서", "변경관리 실시 계획서", "Check List 위험성평가", "가동전 점검 결과"] : [];
     updateCase({
       gradeDecision: { ...result, decidedAt: new Date().toISOString() },

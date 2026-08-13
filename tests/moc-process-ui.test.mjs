@@ -11,11 +11,20 @@ test("process workspace derives status and has no manual next-step control", asy
   assert.doesNotMatch(source, /다음 단계 완료/);
 });
 
-test("process workspace includes approval, committee, plans, training and pre-startup records", async () => {
+test("process workspace includes approval, committee, PSM plan, training and pre-startup records", async () => {
   const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
-  for (const label of ["변경관리위원회", "승인", "변경관리 실시 계획", "변경 검토사항", "공정안전자료 최신화", "교육", "가동전 점검", "Punch List"]) {
+  for (const label of ["변경관리위원회", "승인", "변경관리 실시 계획", "공정안전자료 최신화", "교육", "가동전 점검", "Punch List", "PSM 요소"]) {
     assert.match(source, new RegExp(label));
   }
+  assert.doesNotMatch(source, /title="변경 검토사항"/);
+});
+
+test("Punch List deletion requires a confirmation dialog", async () => {
+  const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
+  assert.match(source, /punchPendingDeletion/);
+  assert.match(source, /정말 삭제하시겠습니까/);
+  assert.match(source, /Punch List 삭제/);
+  assert.match(source, /🗑/u);
 });
 
 test("grade 1 and 2 committee path is visibly distinguished from grade 3", async () => {

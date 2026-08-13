@@ -20,10 +20,6 @@ function requiredTrainingComplete(item: MocCaseV2) {
   return item.training.records.filter((record) => record.required).every((record) => record.completed);
 }
 
-function reviewItemsComplete(item: MocCaseV2) {
-  return item.reviewItems.every((review) => review.applicable === false || (review.applicable === true && review.confirmed));
-}
-
 export function validateCompletion(item: MocCaseV2): CompletionError[] {
   const errors: CompletionError[] = [];
   const grade = effectiveGrade(item);
@@ -37,8 +33,6 @@ export function validateCompletion(item: MocCaseV2): CompletionError[] {
   if (!requiredTrainingComplete(item)) errors.push(error("TRAINING_INCOMPLETE", "필수교육이 완료되지 않았습니다.", "가동 전에 운전·정비·도급업체 대상 필수교육을 완료하세요."));
   if (item.preStartupInspection.finalResult !== "SUITABLE") errors.push(error("PRE_STARTUP_INCOMPLETE", "가동전 점검이 최종 적합 상태가 아닙니다.", "가동전 점검과 필요한 재점검을 완료하세요."));
   if (item.preStartupInspection.punchItems.some((punch) => !punch.completed)) errors.push(error("PUNCH_ITEMS_OPEN", "미완료 Punch List가 있습니다.", "모든 개선사항을 조치하고 완료 여부를 확인하세요."));
-  if (!reviewItemsComplete(item)) errors.push(error("REVIEW_ITEMS_INCOMPLETE", "변경 검토사항이 완료되지 않았습니다.", "해당되는 변경 검토사항의 결과와 완료 여부를 기록하세요."));
-
   if (item.basicInfo.duration === "TEMPORARY") {
     if (!item.temporaryTechnicalReviewCompleted) errors.push(error("TEMPORARY_TECHNICAL_REVIEW_INCOMPLETE", "임시변경 기술검토가 완료되지 않았습니다.", "변경관리 기술검토서를 작성하고 검토를 완료하세요."));
     if (!item.temporaryRiskAssessmentCompleted) errors.push(error("TEMPORARY_RISK_ASSESSMENT_INCOMPLETE", "임시변경 위험성평가가 완료되지 않았습니다.", "공정위험성평가를 수행하고 결과를 등록하세요."));
