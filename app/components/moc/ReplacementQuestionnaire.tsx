@@ -11,7 +11,7 @@ const answers: Array<{ value: ComparisonValue; label: string; help: string }> = 
   { value: "UNKNOWN", label: "잘 모르겠음", help: "위원회 검토 필요로 기록됩니다." },
 ];
 
-export function ReplacementQuestionnaire({ assetType, targetName, onComplete, onBack }: { assetType: AssetType; targetName: string; onComplete: (result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) => void; onBack: () => void }) {
+export function ReplacementQuestionnaire({ assetType, targetName, onComplete, onTemporarySave, onBack }: { assetType: AssetType; targetName: string; onComplete: (result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) => void; onTemporarySave: (comparisons: Record<string, ComparisonValue>) => void; onBack: () => void }) {
   const criteria = useMemo(() => criteriaForAsset(assetType), [assetType]);
   const [index, setIndex] = useState(0);
   const [comparisons, setComparisons] = useState<Record<string, ComparisonValue>>({});
@@ -26,5 +26,6 @@ export function ReplacementQuestionnaire({ assetType, targetName, onComplete, on
       <div className="answer-grid">{answers.map((answer) => <button key={answer.value} className={selected === answer.value ? "selected" : ""} onClick={() => choose(answer.value)}><span className="radio">{selected === answer.value ? "●" : ""}</span><b>{answer.label}</b><small>{answer.help}</small></button>)}</div>
       <div className="guideline-link">▤ 관련 기준: 붙임 2 변경판정 기준 · {current.label}</div>
       <div className="question-footer"><button className="btn ghost" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}>← 이전</button>{index < criteria.length - 1 ? <button className="btn primary" disabled={!selected} onClick={() => setIndex((value) => value + 1)}>다음 질문 →</button> : <button className="btn primary" disabled={!selected} onClick={finish}>변경판정 실행 →</button>}</div>
+      <div className="question-footer temporary-save-footer"><button type="button" className="btn soft" onClick={() => onTemporarySave(comparisons)}>임시저장</button></div>
     </section></div>;
 }

@@ -68,6 +68,7 @@ export default function Home() {
   const [adminPromptOpen, setAdminPromptOpen] = useState(false);
   const [adminPromptMode, setAdminPromptMode] = useState<AdminPromptMode>("access");
   const [pendingHistoryDeleteIds, setPendingHistoryDeleteIds] = useState<string[]>([]);
+  const [temporarySavePromptOpen, setTemporarySavePromptOpen] = useState(false);
   const [questionList, setQuestionList] = useState<Question[]>(questions);
 
   useEffect(() => {
@@ -191,14 +192,14 @@ export default function Home() {
     }));
     notify("공장장/리더 승인 처리가 완료되었습니다.");
   }
-  function startGuidelineCase(info: MocBasicInfo, assetType: AssetType) {
+  function startGuidelineCase(info: MocBasicInfo, assetType: AssetType, destination: View = "replacement") {
     if (!selectedSite) return notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
     const id = `moc-${Date.now()}`;
     const legacy = createMocCase({ id, cases, workType: info.workType, site: selectedSite });
     const domain = createEmptyMocCase({
       id,
       caseNumber: legacy.caseNumber,
-      title: info.title,
+      title: info.title.trim() || "임시저장 변경 판단",
       workType: info.workType,
       site: selectedSite,
       author: legacy.author,
@@ -209,7 +210,7 @@ export default function Home() {
     const item: MocCase = {
       ...legacy,
       ...domain,
-      title: info.title,
+      title: info.title.trim() || "임시저장 변경 판단",
       workType: info.workType,
       status: "QUESTIONNAIRE_IN_PROGRESS",
       answers: {},
@@ -229,7 +230,32 @@ export default function Home() {
     };
     setCases((current) => [item, ...current]);
     setActiveId(id);
-    go("replacement");
+    go(destination);
+  }
+  function saveNewGuidelineDraft(info: MocBasicInfo, assetType: AssetType) {
+    startGuidelineCase(info, assetType, "new");
+    setTemporarySavePromptOpen(true);
+  }
+  function saveReplacementDraft(comparisons: Record<string, ComparisonValue>) {
+    if (!active) return;
+    updateCase({
+      replacementDecision: {
+        result: "UNDETERMINED",
+        assetType: active.guidelineAssetType,
+        comparisons,
+        matchedCriteria: [],
+        reasons: ["임시저장된 변경 판정 답변입니다."],
+        requiresCommittee: false,
+        decidedAt: new Date().toISOString(),
+      },
+      status: "QUESTIONNAIRE_IN_PROGRESS",
+    });
+    setTemporarySavePromptOpen(true);
+  }
+  function saveGradeDraft(gradeAnswers: Record<string, "YES" | "NO" | "UNKNOWN">) {
+    if (!active) return;
+    updateCase({ answers: gradeAnswers as unknown as Record<string, AnswerValue>, status: "QUESTIONNAIRE_IN_PROGRESS" });
+    setTemporarySavePromptOpen(true);
   }
   function runGuidelineReplacement(result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) {
     if (!active) return;
@@ -309,9 +335,9 @@ export default function Home() {
   if (!entered) return <EntryScreen onEnter={enterApplication} />;
 
   const main = view === "dashboard" ? <Dashboard cases={siteCases} reminders={reminders} onNew={() => go("new")} onOpen={(c, v) => { setActiveId(c.id); go(v ?? (c.schemaVersion === 2 ? "process" : "progress")); }} onReminder={() => go("reminders")} onHistory={() => go("history")} />
-    : view === "new" ? <NewMocCaseForm onSubmit={startGuidelineCase} onBack={() => go("dashboard")} />
-    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onBack={() => go("new")} />
-    : view === "grade" && active ? <GradeQuestionnaire workType={active.workType} onComplete={runGuidelineGrade} onBack={() => go("replacement")} />
+    : view === "new" ? <NewMocCaseForm onSubmit={startGuidelineCase} onTemporarySave={saveNewGuidelineDraft} onBack={() => go("dashboard")} />
+    : view === "replacement" && active && active.guidelineAssetType ? <ReplacementQuestionnaire assetType={active.guidelineAssetType} targetName={active.basicInfo?.targetEquipment || active.title} onComplete={runGuidelineReplacement} onTemporarySave={saveReplacementDraft} onBack={() => go("new")} />
+    : view === "grade" && active ? <GradeQuestionnaire workType={active.workType} contextText={`${active.basicInfo?.title ?? ""} ${active.basicInfo?.reason ?? ""} ${active.basicInfo?.description ?? ""} ${active.basicInfo?.targetEquipment ?? ""} ${active.basicInfo?.beforeState ?? ""}`} onComplete={runGuidelineGrade} onTemporarySave={saveGradeDraft} onBack={() => go("replacement")} />
     : view === "guideline_result" && active ? <MocDecisionResult item={active} onEdit={() => go("replacement")} onProcess={() => go("process")} onDashboard={() => go("dashboard")} />
     : view === "process" && active && active.schemaVersion === 2 ? <MocProcessWorkspace item={active} onChange={updateGuidelineCase} onBack={() => go("guideline_result")} />
     : view === "question" && active ? <QuestionView item={active} list={activeQuestions} index={questionIndex} saveState={saveState} onAnswer={answer} onIndex={setQuestionIndex} onReview={() => go("review")} onHome={() => go("dashboard")} />
@@ -334,9 +360,14 @@ export default function Home() {
         <main className="content">{selectedSite ? main : <SiteSelectionPrompt />}</main>
       </div>
       {toast && <div className="toast"><span>✓</span>{toast}</div>}
-      {adminPromptOpen && <AdminPasswordPrompt mode={adminPromptMode} onCancel={() => setAdminPromptOpen(false)} onAuthorize={authorizeAdminAction} />}
+       {adminPromptOpen && <AdminPasswordPrompt mode={adminPromptMode} onCancel={() => setAdminPromptOpen(false)} onAuthorize={authorizeAdminAction} />}
+       {temporarySavePromptOpen && <TemporarySavePrompt onStay={() => setTemporarySavePromptOpen(false)} onLeave={() => { setTemporarySavePromptOpen(false); go("dashboard"); notify("임시저장되었습니다. 대시보드에서 이어서 작성할 수 있습니다."); }} />}
     </div>
   );
+}
+
+function TemporarySavePrompt({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  return <div className="confirm-backdrop" role="presentation"><section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="temporary-save-title"><h2 id="temporary-save-title">임시저장 완료</h2><p>저장을 하고 메인 페이지로 넘어가시겠습니까?</p><div className="confirm-actions"><button type="button" className="btn ghost" onClick={onStay}>머무르기</button><button type="button" className="btn primary" onClick={onLeave}>넘어가기</button></div></section></div>;
 }
 
 function EntryScreen({ onEnter }: { onEnter: () => void }) {

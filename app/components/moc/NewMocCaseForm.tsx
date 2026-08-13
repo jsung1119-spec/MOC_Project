@@ -28,7 +28,7 @@ const empty: MocBasicInfo = {
   beforeState: "", changeKind: "NORMAL", duration: "PERMANENT",
 };
 
-export function NewMocCaseForm({ onSubmit, onBack }: { onSubmit: (info: MocBasicInfo, assetType: AssetType) => void; onBack: () => void }) {
+export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack }: { onSubmit: (info: MocBasicInfo, assetType: AssetType) => void; onTemporarySave: (info: MocBasicInfo, assetType: AssetType) => void; onBack: () => void }) {
   const [info, setInfo] = useState(empty);
   const [assetType, setAssetType] = useState<AssetType>("PUMP");
   const [attempted, setAttempted] = useState(false);
@@ -56,6 +56,7 @@ export function NewMocCaseForm({ onSubmit, onBack }: { onSubmit: (info: MocBasic
       <div className="guideline-choice-row"><fieldset><legend>변경 종류</legend><label><input type="radio" checked={info.changeKind === "NORMAL"} onChange={() => set("changeKind", "NORMAL")}/> 정상변경</label><label><input type="radio" checked={info.changeKind === "EMERGENCY"} onChange={() => set("changeKind", "EMERGENCY")}/> 비상변경</label></fieldset><fieldset><legend>변경 구분</legend><label><input type="radio" checked={info.duration === "PERMANENT"} onChange={() => set("duration", "PERMANENT")}/> 영구</label><label><input type="radio" checked={info.duration === "TEMPORARY"} onChange={() => set("duration", "TEMPORARY")}/> 임시</label></fieldset></div>
       {info.duration === "TEMPORARY" && <div className="notice amber"><b>30</b><div><strong>임시변경은 30일 이내로 제한됩니다.</strong><div className="form-grid"><GuidelineField type="date" label="사용 시작일" value={info.temporaryStartDate ?? ""} onChange={(value) => set("temporaryStartDate", value)} error={errorFor("temporaryStartDate")?.message}/><GuidelineField type="date" label="사용 종료일" value={info.temporaryEndDate ?? ""} onChange={(value) => set("temporaryEndDate", value)} error={errorFor("temporaryEndDate")?.message}/></div></div></div>}
       <div className="question-footer"><button className="btn ghost" onClick={onBack}>← 이전</button><button className="btn primary" onClick={submit}>변경판정 시작 →</button></div>
+      <div className="question-footer temporary-save-footer"><button type="button" className="btn soft" onClick={() => onTemporarySave(info, assetType)}>임시저장</button></div>
     </section></div>;
 }
 

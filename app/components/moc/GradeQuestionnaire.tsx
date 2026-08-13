@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { recommendGrade, type GradeRecommendation } from "../../lib/moc/grade-engine";
+import { inferGradeCandidateIds, recommendGrade, type GradeRecommendation } from "../../lib/moc/grade-engine";
 import { gradeRules } from "../../lib/moc/grade-rules";
 import type { WorkType } from "../../lib/moc/types";
 
@@ -18,8 +18,14 @@ const categoriesByWorkType: Record<WorkType, string[]> = {
 
 type RuleAnswer = "YES" | "NO" | "UNKNOWN";
 
-export function GradeQuestionnaire({ workType, onComplete, onBack }: { workType: WorkType; onComplete: (result: GradeRecommendation, answers: Record<string, RuleAnswer>) => void; onBack: () => void }) {
-  const rules = useMemo(() => { const categories = categoriesByWorkType[workType]; return categories.length ? gradeRules.filter((rule) => categories.includes(rule.category)) : gradeRules; }, [workType]);
+export function GradeQuestionnaire({ workType, contextText, onComplete, onTemporarySave, onBack }: { workType: WorkType; contextText: string; onComplete: (result: GradeRecommendation, answers: Record<string, RuleAnswer>) => void; onTemporarySave: (answers: Record<string, RuleAnswer>) => void; onBack: () => void }) {
+  const suggestedRuleIds = useMemo(() => inferGradeCandidateIds(contextText), [contextText]);
+  const rules = useMemo(() => {
+    const categories = categoriesByWorkType[workType];
+    const scoped = categories.length ? gradeRules.filter((rule) => categories.includes(rule.category)) : gradeRules;
+    const suggested = scoped.filter((rule) => suggestedRuleIds.includes(rule.id));
+    return suggested.length ? suggested : scoped;
+  }, [workType, suggestedRuleIds]);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, RuleAnswer>>({});
   const current = rules[index];
@@ -31,5 +37,6 @@ export function GradeQuestionnaire({ workType, onComplete, onBack }: { workType:
       <div className="answer-grid">{([['YES','해당함'], ['NO','해당하지 않음'], ['UNKNOWN','잘 모르겠음']] as const).map(([value, label]) => <button key={value} className={selected === value ? "selected" : ""} onClick={() => setAnswers((items) => ({ ...items, [current.id]: value }))}><span className="radio">{selected === value ? "●" : ""}</span><b>{label}</b>{value === "UNKNOWN" && <small>위원회 검토 필요</small>}</button>)}</div>
       <div className="guideline-link">▤ 관련 기준: 붙임 3 변경관리등급 기준 · {current.ruleId}</div>
       <div className="question-footer"><button className="btn ghost" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}>← 이전</button>{index < rules.length - 1 ? <button className="btn primary" disabled={!selected} onClick={() => setIndex((value) => value + 1)}>다음 질문 →</button> : <button className="btn primary" disabled={!selected} onClick={finish}>추천 등급 확인 →</button>}</div>
+      <div className="question-footer temporary-save-footer"><button type="button" className="btn soft" onClick={() => onTemporarySave(answers)}>임시저장</button></div>
     </section></div>;
 }
