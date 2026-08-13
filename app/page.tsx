@@ -48,6 +48,7 @@ function todayKey() { const now = new Date(); return new Date(now.getTime() - no
 function daysFrom(date: string) { return Math.ceil((new Date(todayKey()).getTime() - new Date(date).getTime()) / 86400000); }
 function gradeLabel(c?: MocCase) { return c?.judgment?.grade === "NONE" || !c?.judgment ? "-" : `${c.judgment.grade}등급`; }
 function confirmedGrade(c: MocCase) { return c.judgment?.grade === "1" || c.judgment?.grade === "2" || c.judgment?.grade === "3"; }
+function chartEligible(c: MocCase) { return confirmedGrade(c) || c.judgment?.isMocTarget === false; }
 
 function BrandLogo({ className = "" }: { className?: string }) {
   return <img className={`brand-logo ${className}`.trim()} src="/posco-future-m-ci-ko.png" alt="포스코퓨처엠" />;
@@ -417,9 +418,9 @@ function Header({ view, site, onReturnToEntry }: { view: View; site: Site | null
 
 function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: { cases: MocCase[]; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase, v?: View) => void; onReminder: () => void; onHistory: (chartFilter?: string) => void }) {
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
-  const chartCases = cases.filter(confirmedGrade);
+  const chartCases = cases.filter(chartEligible);
   const typeData = countChartData(chartCases, (item) => item.workType);
-  const gradeData = countChartData(chartCases, (item) => `${item.judgment?.grade}등급`);
+  const gradeData = countChartData(chartCases, (item) => item.judgment?.isMocTarget === false ? "비대상" : `${item.judgment?.grade}등급`);
   const stats = [
     ["판단 진행 중", cases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy"],
     ["초안 작성 중", cases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue"],
@@ -431,7 +432,7 @@ function Dashboard({ cases, reminders, onNew, onOpen, onReminder, onHistory }: {
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="stats-grid">{stats.map(([label, count, color]) => <div className={`stat ${color}`} key={String(label)}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></div>)}</section>
-    <section className="chart-grid"><DonutChart title="작업 유형별" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" items={gradeData} onSelect={(label) => onHistory(`grade:${label.replace("등급", "")}`)}/></section>
+    <section className="chart-grid"><DonutChart title="작업 유형별" items={typeData} onSelect={(label) => onHistory(`type:${label}`)}/><DonutChart title="등급별" items={gradeData} onSelect={(label) => onHistory(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`)}/></section>
     <section className="dashboard-grid">
       <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
         <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} />}
@@ -454,7 +455,7 @@ function DonutChart({ title, items, onSelect }: { title: string; items: Array<{ 
   const total = items.reduce((sum, item) => sum + item.count, 0);
   let point = 0;
   const gradient = total ? items.map((item, index) => { const start = point; point += (item.count / total) * 100; return `${colors[index % colors.length]} ${start}% ${point}%`; }).join(", ") : "#e8eef2 0 100%";
-  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건만 표시됩니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>확정 건</small></div><div className="donut-legend">{items.length ? items.map((item, index) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colors[index % colors.length] }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 이력이 없습니다.</p>}</div></div></section>;
+  return <section className="card donut-card"><div><h2>{title} 도넛 그래프</h2><p>등급 확정 건과 비대상 건을 표시합니다. 항목을 누르면 작성 이력을 확인할 수 있습니다.</p></div><div className="donut-layout"><div className="donut" style={{ background: `conic-gradient(${gradient})` }}><b>{total}</b><small>집계 건</small></div><div className="donut-legend">{items.length ? items.map((item, index) => <button key={item.label} type="button" onClick={() => onSelect(item.label)}><i style={{ background: colors[index % colors.length] }}/><span>{item.label}</span><b>{item.count}건</b></button>) : <p>등급 확정 또는 비대상 이력이 없습니다.</p>}</div></div></section>;
 }
 
 function NewCase({ onSelect, onBack }: { onSelect: (t: WorkType, title: string) => void; onBack: () => void }) {
@@ -597,7 +598,8 @@ function History({ items, filter, onFilter, onOpen, onRequestDelete }: { items: 
   const shown = items.filter(c => {
     const chartType = filter.startsWith("type:") ? filter.slice(5) : "";
     const chartGrade = filter.startsWith("grade:") ? filter.slice(6) : "";
-    const matchText = chartType ? c.workType === chartType : chartGrade ? c.judgment?.grade === chartGrade : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
+    const chartTarget = filter.startsWith("target:") ? filter.slice(7) : "";
+    const matchText = chartType ? c.workType === chartType : chartGrade ? c.judgment?.grade === chartGrade : chartTarget ? (chartTarget === "비대상" && c.judgment?.isMocTarget === false) : [c.title, c.caseNumber, c.workType, c.author, statusLabels[c.status]].some(v => v.toLowerCase().includes(filter.toLowerCase()));
     const matchStart = !startDate || c.createdAt >= startDate;
     const matchEnd = !endDate || c.createdAt <= endDate;
     const matchType = workType === "전체" || c.workType === workType;
