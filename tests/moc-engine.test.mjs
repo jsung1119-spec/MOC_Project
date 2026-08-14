@@ -313,11 +313,15 @@ test("history continuation uses the same route as dashboard continuation", async
   assert.match(grade, /initialAnswers\?: Record<string, RuleAnswer>/);
 });
 
-test("dashboard greeting is a fixed system message rather than a user name", async () => {
+test("dashboard removes the greeting and places the new-case button next to its period controls", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const dashboard = page.match(/function Dashboard[\s\S]*?\n}\r?\n\r?\nfunction countChartData/)?.[0] ?? "";
 
-  assert.match(page, /안녕하세요, 변경요소 관리 시스템입니다\./);
-  assert.doesNotMatch(page, /안녕하세요, 김현수님/);
+  assert.doesNotMatch(dashboard, /안녕하세요,/);
+  assert.match(dashboard, /dashboard-toolbar/);
+  assert.match(dashboard, /dashboard-new-button/);
+  assert.match(css, /\.dashboard-toolbar\{display:flex;align-items:stretch;gap:16px\}/);
 });
 
 test("entry and sidebar branding use the POSCO Future M CI asset", async () => {
