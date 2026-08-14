@@ -44,7 +44,7 @@ export function judgeReplacement(input: ReplacementJudgmentInput): ReplacementJu
   }
 
   const unknown = applicable.filter((criterion) => input.comparisons[criterion.id] === "UNKNOWN");
-  const missing = applicable.filter((criterion) => input.comparisons[criterion.id] === undefined || input.comparisons[criterion.id] === "NOT_APPLICABLE");
+  const missing = applicable.filter((criterion) => input.comparisons[criterion.id] === undefined);
   if (unknown.length > 0 || missing.length > 0) {
     const reasons = [
       ...unknown.map((criterion) => `${criterion.label}이(가) 기존과 같은지 확인할 수 없는 상태입니다.`),
@@ -61,7 +61,7 @@ export function judgeReplacement(input: ReplacementJudgmentInput): ReplacementJu
       description: `${criterion.label}이(가) 기존과 동일합니다.`,
       guidelineSection: criterion.guidelineSection,
     })),
-    reasons: [`붙임 2의 적용 비교항목 ${applicable.length}개가 모두 동일하여 단순교체로 판정했습니다.`],
+    reasons: [`붙임 2의 적용 비교항목 ${applicable.length}개가 모두 동일하거나 해당 없어 단순교체로 판정했습니다.`],
     requiresCommittee: false,
   };
 }

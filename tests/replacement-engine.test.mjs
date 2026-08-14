@@ -13,6 +13,15 @@ test("all Appendix 2 pump characteristics equal means simple replacement", () =>
   assert.match(result.reasons[0], /모두 동일/);
 });
 
+test("not applicable Appendix 2 criteria are treated the same as existing conditions", () => {
+  const comparisons = Object.fromEntries(criteriaForAsset("PUMP").map((criterion) => [criterion.id, "SAME"]));
+  comparisons.sealType = "NOT_APPLICABLE";
+  const result = judgeReplacement({ assetType: "PUMP", comparisons });
+
+  assert.equal(result.result, "SIMPLE_REPLACEMENT");
+  assert.equal(result.requiresCommittee, false);
+});
+
 test("one different required piping characteristic means change", () => {
   const comparisons = Object.fromEntries(criteriaForAsset("PIPING").map((criterion) => [criterion.id, "SAME"]));
   comparisons.material = "DIFFERENT";
