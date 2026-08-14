@@ -21,6 +21,8 @@ test("approval updates the business approval record, not only a display status",
   assert.match(approve, /committee\?\.decision !== "APPROVED"/);
   assert.match(approve, /approval:/);
   assert.match(approve, /approverRole/);
+  assert.match(page, /function approvalReviewer\(c: MocCase\) \{ return resolvedGrade\(c\) === "3" \? "설비운영파트장" : "공장장\/리더"; \}/);
+  assert.match(page, /approverName: reviewer/);
   assert.match(approve, /deriveWorkflowStatus/);
 });
 

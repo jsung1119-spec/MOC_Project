@@ -54,6 +54,7 @@ function isApprovalQueueCase(c: MocCase) {
   if (!confirmedGrade(c) || c.replacementDecision?.result === "SIMPLE_REPLACEMENT" || c.approval?.approved) return false;
   return true;
 }
+function approvalReviewer(c: MocCase) { return resolvedGrade(c) === "3" ? "설비운영파트장" : "공장장/리더"; }
 type ReminderTab = "ALL" | "OVERDUE" | "FOLLOW_UP" | "UNSUBMITTED";
 function reminderCategory(item: MocCase): Exclude<ReminderTab, "ALL"> {
   if (["QUESTIONNAIRE_IN_PROGRESS", "DOCUMENT_DRAFTING", "READY_TO_SUBMIT"].includes(item.status)) return "UNSUBMITTED";
@@ -234,16 +235,16 @@ export default function Home() {
     if ((grade === "1" || grade === "2") && candidate.committee?.decision === "REJECTED") return notify("변경관리위원회 심의 결과가 반려입니다. 보완 후 다시 심의해 주세요.");
     if ((grade === "1" || grade === "2") && candidate.committee?.decision === "SUPPLEMENT_REQUIRED") return notify("변경관리위원회에서 보완을 요청했습니다. 보완 조치 후 심의 결과를 승인으로 등록해 주세요.");
     if ((grade === "1" || grade === "2") && candidate.committee?.decision !== "APPROVED") return notify("1·2등급은 변경관리위원회 심의 결과를 ‘승인’으로 등록해야 승인할 수 있습니다.");
+    const reviewer = approvalReviewer(candidate);
     setCases((current) => current.map((item) => {
       if (item.id !== id) return item;
       if (item.schemaVersion !== 2) return { ...item, status: "APPROVED" };
-      const itemGrade = item.gradeDecision?.finalGrade ?? item.gradeDecision?.recommendedGrade;
-      const merged = { ...item, approval: { approved: true, approverRole: itemGrade === "3" ? "설비운전파트장" : "설비운영부서장", approverName: "공장장/리더", approvedAt: new Date().toISOString() } } as MocCase;
+      const merged = { ...item, approval: { approved: true, approverRole: reviewer, approverName: reviewer, approvedAt: new Date().toISOString() } } as MocCase;
       merged.workflow = { status: deriveWorkflowStatus(merged as unknown as MocCaseV2) };
       merged.status = "APPROVED";
       return merged;
     }));
-    notify("공장장/리더 승인 처리가 완료되었습니다.");
+    notify(`${reviewer} 승인 처리가 완료되었습니다.`);
   }
   function snoozeReminder(id: string, until: string) {
     setCases((current) => current.map((item) => item.id === id ? { ...item, reminderSnoozedUntil: until } : item));
@@ -660,8 +661,8 @@ function Reminders({ items, logs, onOpen, onSend, onSnooze }: { items: MocCase[]
 function Approvals({ items, site, list, onApprove, onRename }: { items: MocCase[]; site: Site | null; list: Question[]; onApprove: (id: string) => void; onRename: (id: string, title: string) => void }) {
   const pending = items.filter(isApprovalQueueCase);
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
-  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>제출된 변경 판단 자료를 공장장/리더가 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
-    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {site ?? item.site}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>공장장/리더</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">REVIEW · APPROVAL</span><h1>검토/승인</h1><p>등급별 검토·승인자가 제출된 변경 판단 자료를 확인하고 승인합니다.</p></div><Badge tone="purple">{pending.length}건 대기</Badge></div>
+    <section className="card approval-card">{pending.length === 0 ? <div className="empty-state"><b>승인 대기 건이 없습니다.</b><p>문서 초안에서 검토 요청을 제출하면 이곳에 표시됩니다.</p></div> : pending.map((item) => <div className="approval-row" key={item.id}><div><Badge tone="purple">검토 요청</Badge><button className="approval-title" onClick={() => setSelectedCase(item)}>{item.title}</button><p>{item.caseNumber} · {item.workType} · 작성자 {site ?? item.site}</p></div><div className="approval-reviewer"><small>검토/승인자</small><strong>{approvalReviewer(item)}</strong></div><button className="btn primary" onClick={() => onApprove(item.id)}>승인하기</button></div>)}</section>
     {selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} questionList={list} displaySite={site} onRename={onRename} />}</div>;
 }
 

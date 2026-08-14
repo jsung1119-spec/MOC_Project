@@ -30,7 +30,7 @@ test("Punch List deletion requires a confirmation dialog", async () => {
 test("grade 1 and 2 committee path is visibly distinguished from grade 3", async () => {
   const source = await read("../app/components/moc/MocProcessWorkspace.tsx");
   assert.match(source, /grade === "1" \|\| grade === "2"/);
-  assert.match(source, /설비운전파트장/);
+  assert.match(source, /설비운영파트장/);
 });
 
 test("grade 1 and 2 committee records manage attendees with add, check, and confirmed deletion", async () => {

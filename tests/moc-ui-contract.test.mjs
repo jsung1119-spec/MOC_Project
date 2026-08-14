@@ -22,6 +22,8 @@ test("replacement questionnaire consumes the Appendix 2 dataset", async () => {
   assert.match(source, /SAME/);
   assert.match(source, /DIFFERENT/);
   assert.match(source, /UNKNOWN/);
+  assert.match(source, /NOT_APPLICABLE/);
+  assert.match(source, /해당 없음/);
 });
 
 test("grade questionnaire presents Appendix 3 as a multi-select table", async () => {

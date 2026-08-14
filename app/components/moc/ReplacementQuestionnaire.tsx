@@ -10,6 +10,7 @@ const answers: Array<{ value: ComparisonValue; label: string; help: string }> = 
   { value: "SAME", label: "기존과 동일", help: "규격·재질·성능이 같습니다." },
   { value: "DIFFERENT", label: "기존과 다름", help: "하나 이상의 조건이 달라집니다." },
   { value: "UNKNOWN", label: "잘 모르겠음", help: "위원회 검토 필요로 기록됩니다." },
+  { value: "NOT_APPLICABLE", label: "해당 없음", help: "이 변경에는 적용되지 않는 비교 항목입니다." },
 ];
 
 export function ReplacementQuestionnaire({ assetType, targetName, questionList, onComplete, onTemporarySave, onBack, initialComparisons, draftKey }: { assetType: AssetType; targetName: string; questionList: Question[]; onComplete: (result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) => void; onTemporarySave: (comparisons: Record<string, ComparisonValue>) => void; onBack: () => void; initialComparisons?: Record<string, ComparisonValue>; draftKey?: string }) {
