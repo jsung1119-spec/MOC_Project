@@ -20,5 +20,8 @@ export function managedQuestions(): Question[] {
 export function mergeManagedQuestions(saved: Question[]) {
   const defaults = managedQuestions();
   const savedById = new Map(saved.map((question) => [question.id, question]));
-  return defaults.map((question) => savedById.get(question.id) ?? question);
+  return defaults
+    .map((question) => savedById.get(question.id) ?? question)
+    .sort((a, b) => a.order - b.order)
+    .map((question, index) => ({ ...question, order: index + 1 }));
 }
