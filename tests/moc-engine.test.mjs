@@ -204,6 +204,21 @@ test("history deletion supports selecting multiple cases and progress does not e
   assert.match(css, /\.timeline>div>\.btn\.primary\{display:none\}/);
 });
 
+test("history exports the currently filtered records as an Excel-compatible file and dashboard stacks reminders above recent records", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const dashboard = page.match(/function Dashboard[\s\S]*?\n}\r?\n\r?\nfunction countChartData/)?.[0] ?? "";
+  const history = page.match(/function History[\s\S]*?\n}\r?\n\r?\nfunction Admin/)?.[0] ?? "";
+
+  assert.match(page, /function exportHistoryToExcel\(items: MocCase\[\], site: Site \| null\)/);
+  assert.match(page, /MOC_작성_이력_\$\{todayKey\(\)\}\.csv/);
+  assert.match(history, /onClick=\{\(\) => exportHistoryToExcel\(shown, site\)\}/);
+  assert.match(dashboard, /dashboard-grid dashboard-stacked/);
+  assert.ok(dashboard.indexOf("미완료 Reminder") < dashboard.indexOf("최근 작성 목록"));
+  assert.doesNotMatch(dashboard, /stats-grid/);
+  assert.match(css, /\.dashboard-grid\.dashboard-stacked\{grid-template-columns:minmax\(0,1fr\)\}/);
+});
+
 test("history table shows the currently selected site in the author and department column", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const historyBlock = page.match(/function History[\s\S]*?\n}\r?\n\r?\nfunction Admin/)?.[0] ?? "";
@@ -252,7 +267,6 @@ test("dashboard uses Reminder overdue data and a period-filtered writing versus 
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
   assert.match(page, /function reminderCategory/);
-  assert.match(page, /reminders\.filter\(\(item\) => reminderCategory\(item\) === "OVERDUE"\)/);
   assert.match(page, /function ProgressBarChart/);
   assert.match(page, /label: "작업 중"/);
   assert.match(page, /label: "변경완료"/);
@@ -270,7 +284,7 @@ test("dashboard uses Reminder overdue data and a period-filtered writing versus 
   assert.match(css, /\.donut-card>div>p,\.progress-chart-card>div>p\{font-size:12px;line-height:1\.65\}/);
 });
 
-test("dashboard limits summary cards and charts to the recent five years with year and month filters", async () => {
+test("dashboard limits charts to the recent five years with year and month filters", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
   assert.match(page, /const recentYears = Array\.from\(\{ length: 5 \}/);
@@ -278,7 +292,8 @@ test("dashboard limits summary cards and charts to the recent five years with ye
   assert.match(page, /const \[selectedYear, setSelectedYear\] = useState\("ALL"\)/);
   assert.match(page, /const \[selectedMonth, setSelectedMonth\] = useState\("ALL"\)/);
   assert.match(page, /period:\$\{periodKey\}/);
-  assert.match(page, /className=\{`stat \$\{color\} \$\{Number\(count\) > 0 \? "clickable" : ""\}`\}/);
+  assert.match(page, /dashboard-grid dashboard-stacked/);
+  assert.doesNotMatch(page.match(/function Dashboard[\s\S]*?\n}\r?\n\r?\nfunction countChartData/)?.[0] ?? "", /stats-grid/);
   assert.match(page, /chartStatuses = token\("status:"\)/);
 });
 

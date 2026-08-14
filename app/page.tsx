@@ -498,27 +498,18 @@ function Dashboard({ cases, site, reminders, onNew, onOpen, onRename, onReminder
     { label: "작업 중", count: dashboardCases.filter((item) => !isCompletedChange(item)).length, color: "#7cc7ee", filter: "progress:WORKING" },
     { label: "변경완료", count: dashboardCases.filter(isCompletedChange).length, color: "#1769aa", filter: "progress:COMPLETED" },
   ];
-  const stats = [
-    ["판단 진행 중", dashboardCases.filter(c => c.status === "QUESTIONNAIRE_IN_PROGRESS").length, "navy", "status:QUESTIONNAIRE_IN_PROGRESS"],
-    ["초안 작성 중", dashboardCases.filter(c => c.status === "DOCUMENT_DRAFTING").length, "blue", "status:DOCUMENT_DRAFTING"],
-    ["제출 대기", dashboardCases.filter(c => c.status === "READY_TO_SUBMIT").length, "amber", "status:READY_TO_SUBMIT"],
-    ["검토 중", dashboardCases.filter(c => ["SUBMITTED", "UNDER_REVIEW", "JUDGMENT_COMPLETED"].includes(c.status)).length, "purple", "status:SUBMITTED,UNDER_REVIEW,JUDGMENT_COMPLETED"],
-    ["승인 완료", dashboardCases.filter(c => ["APPROVED", "CLOSED"].includes(c.status)).length, "green", "status:APPROVED,CLOSED"],
-    ["기한 초과", reminders.filter((item) => reminderCategory(item) === "OVERDUE").length, "red", "reminder:overdue"],
-  ];
   const historyFilter = (filter: string) => `period:${periodKey}|${filter}`;
   return <div className="page-stack">
     <section className="welcome"><div><h1>안녕하세요, 변경요소 관리 시스템입니다.</h1><p>오늘도 안전한 작업을 위해 변경 사항을 꼼꼼히 확인해 주세요.</p></div><button className="btn primary large" onClick={onNew}><span>＋</span> 새 변경 판단 시작</button></section>
     <section className="dashboard-period"><div><b>대시보드 집계 기간</b><small>최근 5년치만 보여드립니다.</small></div><div><select value={selectedYear} onChange={(event) => { setSelectedYear(event.target.value); setSelectedMonth("ALL"); }}><option value="ALL">전체</option>{recentYears.map((year) => <option key={year} value={year}>{year}년</option>)}</select><select value={selectedMonth} disabled={selectedYear === "ALL"} onChange={(event) => setSelectedMonth(event.target.value)}><option value="ALL">전체</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0")).map((month) => <option key={month} value={month}>{Number(month)}월</option>)}</select></div></section>
-    <section className="stats-grid">{stats.map(([label, count, color, filterKey]) => <button type="button" className={`stat ${color} ${Number(count) > 0 ? "clickable" : ""}`} disabled={Number(count) === 0} key={String(label)} onClick={() => filterKey === "reminder:overdue" ? onReminder() : onHistory(historyFilter(String(filterKey)))}><div><span>{label}</span><b>{count}</b><small>건</small></div><i>{color === "red" ? "!" : color === "green" ? "✓" : "→"}</i></button>)}</section>
     <section className="chart-grid"><DonutChart title="작업유형별 변경관리 건수" colorScheme="workType" items={typeData} onSelect={(label) => onHistory(historyFilter(`type:${label}`))}/><ProgressBarChart items={progressData} onSelect={(filter) => onHistory(historyFilter(filter))}/><DonutChart title="등급별 변경관리 건수" colorScheme="grade" items={gradeData} onSelect={(label) => onHistory(historyFilter(label === "비대상" ? "target:비대상" : `grade:${label.replace("등급", "")}`))}/></section>
-    <section className="dashboard-grid">
-      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
-        <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} displaySite={site} onRename={onRename} />}
-      </div>
+    <section className="dashboard-grid dashboard-stacked">
       <div className="card reminder-card"><div className="card-head"><div><span className="mini-icon amber">!</span><h2>미완료 Reminder</h2></div><Badge tone="amber">{reminders.length}건</Badge></div>
         {reminders.slice(0, 2).map(c => <div className="reminder-mini" key={c.id}><div><Badge tone={c.dueDate < todayKey() ? "red" : "amber"}>{c.dueDate < todayKey() ? `${daysFrom(c.dueDate)}일 초과` : "후속 조치"}</Badge><h3>{c.title}</h3><p>{reminderReasonsForCase(c)[0] ?? statusLabels[c.status]} · {fmt(c.dueDate)}까지</p></div><button onClick={() => onOpen(c)}>이어서 작성 →</button></div>)}
         <button className="btn soft full" onClick={onReminder}>Reminder 전체 보기</button>
+      </div>
+      <div className="card recent"><div className="card-head"><div><h2>최근 작성 목록</h2><p>최근 작업 중인 변경요소관리 건입니다.</p></div><button className="text-btn" onClick={() => onHistory()}>전체 보기 →</button></div>
+        <div className="table-wrap"><table><thead><tr><th>작업명</th><th>작업 유형</th><th>MOC 판단</th><th>등급</th><th>현재 상태</th><th>완료 예정일</th><th></th></tr></thead><tbody>{cases.slice(0, 5).map(c => <tr key={c.id}><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button><small>{c.caseNumber}</small></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td><b>{gradeLabel(c)}</b></td><td><Badge tone={c.status === "CLOSED" ? "green" : c.status === "UNDER_REVIEW" ? "purple" : "blue"}>{statusLabels[c.status]}</Badge></td><td className={cn(c.dueDate < todayKey() && c.status !== "CLOSED" && "danger-text")}>{fmt(c.dueDate)}</td><td><button className="row-action" onClick={() => onOpen(c)}>{c.status === "CLOSED" ? "상세" : "이어서"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} displaySite={site} onRename={onRename} />}
       </div>
     </section>
     <section className="safety-note"><span>✓</span><div><b>판단 전 확인해 주세요</b><p>이 시스템의 결과는 업무지침 기반 작성 지원 결과입니다. 최종 판정은 담당자 검토가 필요할 수 있습니다.</p></div><button>업무지침 보기 →</button></section>
@@ -694,6 +685,30 @@ function MocReviewDetail({ item, onClose, onContinue, questionList = questions, 
     <h3>전체 질문과 답변</h3><ul className="answer-detail-list">{decisionReady ? <>{comparisons.map(([id, value]) => <li key={`comparison-${id}`}><span>{questionList.find(question => question.id === `replacement:${id}`)?.text ?? criteria.find(criterion => criterion.id === id)?.label ?? id}</span><b>{comparisonText(value)}</b></li>)}{answered.map(([id, value]) => { const question = questionList.find(question => question.id === id) ?? questionList.find(question => question.id === `grade:${id}`); const gradeRule = gradeRules.find(rule => rule.id === id); return <li key={id}><span>{question?.text ?? gradeRule?.title ?? id}</span><b>{answerText(value)}</b></li>; })}</> : <li><span>-</span><b>-</b></li>}</ul></section>;
 }
 
+function exportHistoryToExcel(items: MocCase[], site: Site | null) {
+  const headers = ["관리번호", "작업명", "작업 유형", "대상 여부", "등급", "작성자/부서", "작성일", "상태", "완료 예정일"];
+  const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const rows = items.map((item) => [
+    item.caseNumber,
+    item.title,
+    item.workType,
+    item.judgment ? (item.judgment.isMocTarget ? "대상" : "비대상") : "-",
+    gradeLabel(item),
+    site ?? item.site,
+    fmt(item.createdAt),
+    statusLabels[item.status],
+    fmt(item.dueDate),
+  ]);
+  const csv = [headers, ...rows].map((row) => row.map((cell) => escapeCell(String(cell))).join(",")).join("\r\n");
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+  link.download = `MOC_작성_이력_${todayKey()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
 function History({ items, site, filter, onFilter, onContinue, onRename, onRequestDelete }: { items: MocCase[]; site: Site | null; filter: string; onFilter: (v: string) => void; onContinue: (c: MocCase) => void; onRename: (id: string, title: string) => void; onRequestDelete: (ids: string[]) => void }) {
   const [selectedCase, setSelectedCase] = useState<MocCase | null>(null);
   const [startDate, setStartDate] = useState("");
@@ -726,7 +741,7 @@ function History({ items, site, filter, onFilter, onContinue, onRename, onReques
   const toggleSelected = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
   const allSelected = shown.length > 0 && shown.every((item) => selectedIds.includes(item.id));
   const toggleAll = () => setSelectedIds(allSelected ? selectedIds.filter((id) => !shown.some((item) => item.id === id)) : [...new Set([...selectedIds, ...shown.map((item) => item.id)])]);
-  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">MOC RECORDS</span><h1>작성 이력</h1><p>판단부터 종결까지 모든 변경 이력을 확인할 수 있습니다.</p></div><div className="history-actions"><button className="btn ghost" disabled={selectedIds.length === 0} onClick={() => onRequestDelete(selectedIds)}>이력 삭제</button><button className="btn primary">↓ 목록 내보내기</button></div></div>
+  return <div className="page-stack"><div className="page-title"><div><span className="eyebrow">MOC RECORDS</span><h1>작성 이력</h1><p>판단부터 종결까지 모든 변경 이력을 확인할 수 있습니다.</p></div><div className="history-actions"><button className="btn ghost" disabled={selectedIds.length === 0} onClick={() => onRequestDelete(selectedIds)}>이력 삭제</button><button className="btn primary" onClick={() => exportHistoryToExcel(shown, site)}>↓ 목록 내보내기</button></div></div>
     <section className="filter-card card"><label>통합 검색<input value={filter} onChange={e => onFilter(e.target.value)} placeholder="관리번호, 작업명, 작성자 검색"/></label><label>작성 기간 시작<input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}/></label><label>작성 기간 종료<input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}/></label><label>작업 유형<select value={workType} onChange={e => setWorkType(e.target.value)}><option>전체</option>{workTypes.map(w => <option key={w.label}>{w.label}</option>)}</select></label><label>대상 여부<select value={target} onChange={e => setTarget(e.target.value)}><option>전체</option><option>대상</option><option>비대상</option><option>미판단</option></select></label><label>진행 상태<select value={status} onChange={e => setStatus(e.target.value)}><option>전체</option><option>진행 중</option><option>완료</option></select></label></section>
     <section className="card history-card"><div className="card-head"><div><h2>전체 {shown.length}건</h2><p>최신 작성 순으로 표시됩니다.</p></div><span className="muted">{startDate || "전체 기간"} — {endDate || "오늘"}</span></div><div className="table-wrap"><table><thead><tr><th><input aria-label="현재 목록 전체 선택" type="checkbox" checked={allSelected} onChange={toggleAll}/></th><th>관리번호</th><th>작업명</th><th>작업 유형</th><th>대상 여부</th><th>등급</th><th>작성자 / 부서</th><th>작성일</th><th>상태</th><th></th></tr></thead><tbody>{shown.map(c => <tr key={c.id}><td><input aria-label={`${c.caseNumber} 선택`} type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleSelected(c.id)}/></td><td><b>{c.caseNumber}</b></td><td><button className="approval-title" onClick={() => setSelectedCase(c)}>{c.title}</button></td><td>{c.workType}</td><td>{c.judgment ? <Badge tone={c.judgment.isMocTarget ? "red" : "gray"}>{c.judgment.isMocTarget ? "대상" : "비대상"}</Badge> : "-"}</td><td>{gradeLabel(c)}</td><td>{site ?? c.site}</td><td>{fmt(c.createdAt)}</td><td><Badge tone={c.status === "CLOSED" ? "green" : "blue"}>{statusLabels[c.status]}</Badge></td><td><button className="row-action" onClick={() => c.status === "CLOSED" ? setSelectedCase(c) : onContinue(c)}>{c.status === "CLOSED" ? "상세 보기" : "이어서 작성"} →</button></td></tr>)}</tbody></table></div>{selectedCase && <MocReviewDetail item={selectedCase} onClose={() => setSelectedCase(null)} onContinue={selectedCase.status !== "CLOSED" ? () => onContinue(selectedCase) : undefined} displaySite={site} onRename={onRename} />}</section>
   </div>;
