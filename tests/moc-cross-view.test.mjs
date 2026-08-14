@@ -13,6 +13,16 @@ test("guideline cases use the process workspace after judgment, while unfinished
   assert.match(page, /item\.replacementDecision\.result === "CHANGE" && !item\.gradeDecision\) return go\("grade"\)/);
 });
 
+test("uncommitted new-change input is discarded when leaving the questionnaire and temporary saves commit it", () => {
+  assert.match(page, /const \[uncommittedCaseId, setUncommittedCaseId\] = useState\(""\)/);
+  assert.match(page, /function discardUncommittedCase\(\)/);
+  assert.match(page, /cases\.filter\(\(item\) => item\.id !== uncommittedCaseId\)/);
+  assert.match(page, /if \(uncommittedCaseIdRef\.current && !keepUncommittedCase && next !== view\) discardUncommittedCase\(\)/);
+  assert.match(page, /if \(saved\) commitCaseDraft\(\); else markCaseUncommitted\(id\);/);
+  assert.match(page, /function saveReplacementDraft[\s\S]*?commitCaseDraft\(\)/);
+  assert.match(page, /function saveGradeDraft[\s\S]*?commitCaseDraft\(\)/);
+});
+
 test("approval updates the business approval record, not only a display status", () => {
   const approve = page.match(/function approveCase[\s\S]*?\n  }/)?.[0] ?? "";
   assert.match(approve, /candidate = cases\.find/);

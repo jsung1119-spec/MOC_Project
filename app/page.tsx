@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AnswerValue, Draft, MocBasicInfo, MocCase, MocStatus, Question, WorkType, createEmptyMocCase,
   cloneImplementationPlan, cloneProcessSafetyDocuments, cloneReviewItems, createMocCase,
@@ -88,6 +88,8 @@ export default function Home() {
   const [pendingHistoryDeleteIds, setPendingHistoryDeleteIds] = useState<string[]>([]);
   const [temporarySavePromptOpen, setTemporarySavePromptOpen] = useState(false);
   const [questionList, setQuestionList] = useState<Question[]>(managedQuestions);
+  const [uncommittedCaseId, setUncommittedCaseId] = useState("");
+  const uncommittedCaseIdRef = useRef("");
 
   useEffect(() => {
     try {
@@ -103,8 +105,8 @@ export default function Home() {
   }, []);
   useEffect(() => {
     if (!hydrated || !entered) return;
-    localStorage.setItem("safechange-cases", JSON.stringify(cases));
-  }, [cases, entered, hydrated]);
+    localStorage.setItem("safechange-cases", JSON.stringify(cases.filter((item) => item.id !== uncommittedCaseId)));
+  }, [cases, entered, hydrated, uncommittedCaseId]);
   useEffect(() => {
     if (!hydrated || !entered) return;
     localStorage.setItem("safechange-questions", JSON.stringify(questionList));
@@ -149,7 +151,24 @@ export default function Home() {
     }));
     setTimeout(() => setSaveState("saved"), 480);
   }
+  function markCaseUncommitted(id: string) {
+    uncommittedCaseIdRef.current = id;
+    setUncommittedCaseId(id);
+  }
+  function commitCaseDraft() {
+    uncommittedCaseIdRef.current = "";
+    setUncommittedCaseId("");
+  }
+  function discardUncommittedCase() {
+    const id = uncommittedCaseIdRef.current;
+    if (!id) return;
+    setCases((current) => current.filter((item) => item.id !== id));
+    if (activeId === id) setActiveId("");
+    commitCaseDraft();
+  }
   function go(next: View) {
+    const keepUncommittedCase = (view === "new" && next === "replacement") || (view === "replacement" && next === "grade");
+    if (uncommittedCaseIdRef.current && !keepUncommittedCase && next !== view) discardUncommittedCase();
     if (next !== "history") setFilter("");
     setView(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -178,11 +197,13 @@ export default function Home() {
     go(next);
   }
   function selectSite(site: Site) {
+    discardUncommittedCase();
     setSelectedSite(site);
     setActiveId(casesForSite(cases, site)[0]?.id ?? "");
     go("dashboard");
   }
   function returnToEntry() {
+    discardUncommittedCase();
     setSelectedSite(null);
     setView("dashboard");
     setActiveId("");
@@ -250,7 +271,7 @@ export default function Home() {
     setCases((current) => current.map((item) => item.id === id ? { ...item, reminderSnoozedUntil: until } : item));
     notify(`${until.replaceAll("-", ". ")}까지 Reminder를 연기했습니다.`);
   }
-  function startGuidelineCase(info: MocBasicInfo, assetType: AssetType, destination: View = "replacement") {
+  function startGuidelineCase(info: MocBasicInfo, assetType: AssetType, destination: View = "replacement", saved = false) {
     if (!selectedSite) return notify("먼저 좌측 상단에서 사업장을 선택해 주세요.");
     const id = `moc-${Date.now()}`;
     const legacy = createMocCase({ id, cases, workType: info.workType, site: selectedSite });
@@ -288,13 +309,14 @@ export default function Home() {
     };
     setCases((current) => [item, ...current]);
     setActiveId(id);
+    if (saved) commitCaseDraft(); else markCaseUncommitted(id);
     go(destination);
   }
   function saveNewGuidelineDraft(info: MocBasicInfo, assetType: AssetType) {
     if (active?.schemaVersion === 2 && active.status === "QUESTIONNAIRE_IN_PROGRESS" && !active.replacementDecision) {
       updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, basicInfo: info, guidelineAssetType: assetType });
     } else {
-      startGuidelineCase(info, assetType, "new");
+      startGuidelineCase(info, assetType, "new", true);
     }
     setTemporarySavePromptOpen(true);
   }
@@ -320,11 +342,13 @@ export default function Home() {
       },
       status: "QUESTIONNAIRE_IN_PROGRESS",
     });
+    commitCaseDraft();
     setTemporarySavePromptOpen(true);
   }
   function saveGradeDraft(gradeAnswers: Record<string, "YES" | "NO" | "UNKNOWN">) {
     if (!active) return;
     updateCase({ answers: gradeAnswers as unknown as Record<string, AnswerValue>, status: "QUESTIONNAIRE_IN_PROGRESS" });
+    commitCaseDraft();
     setTemporarySavePromptOpen(true);
   }
   function runGuidelineReplacement(result: ReplacementJudgmentResult, comparisons: Record<string, ComparisonValue>) {
@@ -351,6 +375,7 @@ export default function Home() {
       status: "JUDGMENT_COMPLETED",
       workflow: { status: result.result === "SIMPLE_REPLACEMENT" ? "SIMPLE_REPLACEMENT" : result.result === "CHANGE" ? "GRADE_PENDING" : "COMMITTEE_REVIEW" },
     });
+    if (result.result !== "CHANGE") commitCaseDraft();
     go(result.result === "CHANGE" ? "grade" : "guideline_result");
   }
   function runGuidelineGrade(result: GradeRecommendation, gradeAnswers: Record<string, "YES" | "NO" | "UNKNOWN">) {
@@ -375,6 +400,7 @@ export default function Home() {
       status: "JUDGMENT_COMPLETED",
       workflow: { status: result.requiresCommittee ? "COMMITTEE_REVIEW" : "APPROVAL_PENDING" },
     });
+    commitCaseDraft();
     go("guideline_result");
   }
   function startCase(type: WorkType, title: string) {
