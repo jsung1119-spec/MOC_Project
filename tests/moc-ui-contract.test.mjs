@@ -32,7 +32,7 @@ test("grade questionnaire presents Appendix 3 as a multi-select table", async ()
   assert.match(source, /type="checkbox"/);
   assert.match(source, /selectedRuleIds\.length === 0/);
   assert.match(source, /1·2등급으로 판정되면 변경관리위원회/);
-  assert.match(source, /grade:\$\{rule\.id\}/);
+  assert.doesNotMatch(source, /questionList/);
   assert.doesNotMatch(source, /inferGradeCandidateIds/);
 });
 
