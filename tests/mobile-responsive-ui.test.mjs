@@ -23,3 +23,12 @@ test("mobile CSS uses a drawer navigation and keeps wide tables scrollable", asy
   assert.match(css, /\.table-wrap,[\s\S]*?\.process-table-wrap\{overflow-x:auto/);
   assert.match(css, /\.stats-grid,[\s\S]*?\.chart-grid\{grid-template-columns:1fr/);
 });
+
+test("mobile drawer keeps menu labels together and exposes all navigation items", async () => {
+  const css = await read("../app/globals.css");
+
+  assert.match(css, /\.mobile-nav-head b\{[\s\S]*?white-space:nowrap/);
+  assert.match(css, /\.sidebar nav\{[\s\S]*?display:block/);
+  assert.match(css, /\.sidebar nav button,[\s\S]*?font-size:14px[\s\S]*?white-space:nowrap/);
+  assert.match(css, /\.sidebar nav button span\{[\s\S]*?flex:0 0 23px/);
+});

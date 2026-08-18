@@ -128,3 +128,47 @@ th{padding:14px 16px;background:#f6f8fa;color:#445869;font-size:11px;font-weight
   .step-head{grid-template-columns:1fr;padding:14px}.step-head>div{justify-content:space-between}.case-overview{grid-template-columns:1fr}.result-meta{overflow-x:auto}.result-grid{display:block}.result-side{margin-top:14px}.process-section-body{padding:18px 14px}.committee-head{align-items:stretch}.committee-head .btn{width:100%}
   .confirm-backdrop{padding:14px}.confirm-dialog{padding:22px 18px}.confirm-actions{flex-direction:column-reverse}.confirm-actions .btn{width:100%}
 }
+
+/* 휴대폰 메뉴: PC 레이아웃에는 영향을 주지 않는 가독성 보강 */
+@media(max-width:820px){
+  .sidebar{
+    width:min(340px,calc(100vw - 32px));
+    min-width:0;
+  }
+  .mobile-nav-head{
+    width:100%;
+    min-height:62px;
+    flex:0 0 auto;
+  }
+  .mobile-nav-head b{
+    min-width:0;
+    flex:1 1 auto;
+    white-space:nowrap;
+    word-break:keep-all;
+    overflow-wrap:normal;
+  }
+  .mobile-nav-head button{flex:0 0 34px}
+  .sidebar-brand{display:block!important;width:100%;flex:0 0 auto}
+  .sidebar nav{
+    display:block!important;
+    width:100%;
+    min-width:0;
+    flex:1 1 auto;
+    overflow-y:auto;
+  }
+  .sidebar nav button,.sidebar nav button:not(.active){
+    display:flex!important;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    font-size:14px!important;
+    white-space:nowrap;
+    word-break:keep-all;
+    overflow-wrap:normal;
+  }
+  .sidebar nav button span{flex:0 0 23px;width:23px}
+  .page h1,.page h2,.page h3,.page p,.sidebar b,.sidebar small{
+    word-break:keep-all;
+    overflow-wrap:break-word;
+  }
+}
