@@ -13,14 +13,16 @@ test("new MOC form captures every guideline minimum field", async () => {
   assert.match(source, /validateBasicInfo/);
 });
 
-test("new MOC form places title above future-only written and completion dates and syncs the due date", async () => {
+test("new MOC form fixes the written date to today and syncs the future completion date as the due date", async () => {
   const form = await read("../app/components/moc/NewMocCaseForm.tsx");
   const page = await read("../app/page.tsx");
 
   assert.match(form, /form-grid basic-info-grid/);
   assert.match(form, /basic-info-title/);
   assert.match(form, /label="변경완료 예정"/);
-  assert.match(form, /min=\{today\}/);
+  assert.match(form, /label="작성일자" value=\{today\} readOnly/);
+  assert.match(form, /const completionMinimumDate = today/);
+  assert.match(form, /min=\{completionMinimumDate\}/);
   assert.match(page, /dueDate: info\.plannedCompletionDate \?\? ""/);
 });
 
