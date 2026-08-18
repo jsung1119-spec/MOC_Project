@@ -27,6 +27,7 @@ test("mobile CSS uses a drawer navigation and keeps wide tables scrollable", asy
 test("mobile drawer keeps menu labels together and exposes all navigation items", async () => {
   const css = await read("../app/globals.css");
 
+  assert.match(css, /width:min\(340px,calc\(100vw - 32px\)\);[\s\S]*?flex-direction:column;[\s\S]*?align-items:stretch/);
   assert.match(css, /\.mobile-nav-head b\{[\s\S]*?white-space:nowrap/);
   assert.match(css, /\.sidebar nav\{[\s\S]*?display:block/);
   assert.match(css, /\.sidebar nav button,[\s\S]*?font-size:14px[\s\S]*?white-space:nowrap/);
