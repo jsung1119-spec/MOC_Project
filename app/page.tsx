@@ -89,6 +89,7 @@ export default function Home() {
   const [temporarySavePromptOpen, setTemporarySavePromptOpen] = useState(false);
   const [questionList, setQuestionList] = useState<Question[]>(managedQuestions);
   const [uncommittedCaseId, setUncommittedCaseId] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const uncommittedCaseIdRef = useRef("");
 
   useEffect(() => {
@@ -170,6 +171,7 @@ export default function Home() {
     const keepUncommittedCase = (view === "new" && next === "replacement") || (view === "replacement" && next === "grade");
     if (uncommittedCaseIdRef.current && !keepUncommittedCase && next !== view) discardUncommittedCase();
     if (next !== "history") setFilter("");
+    setMobileNavOpen(false);
     setView(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -213,6 +215,7 @@ export default function Home() {
     setFilter("");
     setAdminAuthorized(false);
     setAdminPromptOpen(false);
+    setMobileNavOpen(false);
     try {
       localStorage.removeItem("safechange-selected-site");
     } catch {}
@@ -450,9 +453,10 @@ export default function Home() {
 
   return (
     <div className="app-shell">
-      <Sidebar view={view} site={selectedSite} reminderCount={reminders.length} approvalPendingCount={approvalPendingCount} onSelectSite={selectSite} onGo={requestView} />
+      <Sidebar view={view} site={selectedSite} reminderCount={reminders.length} approvalPendingCount={approvalPendingCount} mobileNavOpen={mobileNavOpen} onCloseMobileNav={() => setMobileNavOpen(false)} onSelectSite={selectSite} onGo={requestView} />
+      {mobileNavOpen && <button type="button" className="mobile-nav-backdrop" aria-label="메뉴 닫기" onClick={() => setMobileNavOpen(false)} />}
       <div className="app-main">
-        <Header view={view} site={selectedSite} onReturnToEntry={returnToEntry} />
+        <Header view={view} site={selectedSite} onOpenMobileNav={() => setMobileNavOpen(true)} onReturnToEntry={returnToEntry} />
         <main className="content">{selectedSite ? main : <SiteSelectionPrompt />}</main>
       </div>
       {toast && <div className="toast"><span>✓</span>{toast}</div>}
@@ -478,9 +482,9 @@ function SiteSelectionPrompt() {
   return <section className="site-selection-prompt"><span>⌖</span><h1>사업장을 선택해 주세요</h1><p>좌측 상단에서 업무를 진행할 사업장을 선택하면 해당 공장 기준으로 MOC 업무를 관리할 수 있습니다.</p></section>;
 }
 
-function Sidebar({ view, site, reminderCount, approvalPendingCount, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; approvalPendingCount: number; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
+function Sidebar({ view, site, reminderCount, approvalPendingCount, mobileNavOpen, onCloseMobileNav, onSelectSite, onGo }: { view: View; site: Site | null; reminderCount: number; approvalPendingCount: number; mobileNavOpen: boolean; onCloseMobileNav: () => void; onSelectSite: (site: Site) => void; onGo: (v: View) => void }) {
   const nav: { key: View; icon: string; label: string }[] = [{ key: "dashboard", icon: "⌂", label: "대시보드" }, { key: "new", icon: "＋", label: "새 변경 판단" }, { key: "history", icon: "▤", label: "작성 이력" }, { key: "reminders", icon: "♧", label: "Reminder" }, { key: "approvals", icon: "✓", label: "검토/승인" }, { key: "admin", icon: "⚙", label: "기준 관리" }];
-  return <aside className="sidebar"><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => onGo(item.key)}><span>{item.icon}</span>{item.label}{item.key === "reminders" && site && reminderCount > 0 && <em>{reminderCount}</em>}{item.key === "approvals" && approvalPendingCount > 0 && <em>{approvalPendingCount}</em>}</button>)}</nav></aside>;
+  return <aside className={cn("sidebar", mobileNavOpen && "mobile-open")}><div className="mobile-nav-head"><b>메뉴</b><button type="button" onClick={onCloseMobileNav} aria-label="메뉴 닫기">×</button></div><div className="sidebar-brand"><BrandLogo /><SiteSelector site={site} onSelect={onSelectSite} /></div><nav>{nav.map((item) => <button key={item.key} className={cn(view === item.key && "active")} onClick={() => { onGo(item.key); onCloseMobileNav(); }}><span>{item.icon}</span>{item.label}{item.key === "reminders" && site && reminderCount > 0 && <em>{reminderCount}</em>}{item.key === "approvals" && approvalPendingCount > 0 && <em>{approvalPendingCount}</em>}</button>)}</nav></aside>;
 }
 
 function AdminPasswordPrompt({ mode, onCancel, onAuthorize }: { mode: AdminPromptMode; onCancel: () => void; onAuthorize: () => void }) {
@@ -504,9 +508,9 @@ function AdminPasswordPrompt({ mode, onCancel, onAuthorize }: { mode: AdminPromp
   </div>;
 }
 
-function Header({ view, site, onReturnToEntry }: { view: View; site: Site | null; onReturnToEntry: () => void }) {
+function Header({ view, site, onOpenMobileNav, onReturnToEntry }: { view: View; site: Site | null; onOpenMobileNav: () => void; onReturnToEntry: () => void }) {
   const titles: Partial<Record<View, string>> = { dashboard: "대시보드", new: "새 변경 판단", history: "작성 이력", reminders: "Reminder 센터", approvals: "검토/승인", admin: "기준 관리" };
-  return <header className="topbar"><div><span className="crumb">PSM 변경요소관리</span><b>{titles[view] || "MOC 업무 지원"}</b></div><div className="header-actions"><button type="button" className="btn ghost" onClick={onReturnToEntry}>처음 화면으로</button><div className="site-context"><span>⌖</span><div><small>선택 사업장</small><b>{site ?? "사업장을 선택해 주세요"}</b></div></div></div></header>;
+  return <header className="topbar"><button type="button" className="mobile-menu-toggle" aria-label="메뉴 열기" onClick={onOpenMobileNav}>☰</button><div><span className="crumb">PSM 변경요소관리</span><b>{titles[view] || "MOC 업무 지원"}</b></div><div className="header-actions"><button type="button" className="btn ghost topbar-return" onClick={onReturnToEntry}>처음 화면으로</button><div className="site-context"><span>⌖</span><div><small>선택 사업장</small><b>{site ?? "사업장을 선택해 주세요"}</b></div></div></div></header>;
 }
 
 function Dashboard({ cases, site, reminders, onNew, onOpen, onRename, onReminder, onHistory }: { cases: MocCase[]; site: Site | null; reminders: MocCase[]; onNew: () => void; onOpen: (c: MocCase) => void; onRename: (id: string, title: string) => void; onReminder: () => void; onHistory: (chartFilter?: string) => void }) {

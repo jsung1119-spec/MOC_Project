@@ -343,7 +343,7 @@ test("remindersForCases counts only open draft or due-soon cases in the selected
     { id: "draft", status: "DOCUMENT_DRAFTING", dueDate: "2026-08-10" },
     { id: "soon", status: "UNDER_REVIEW", dueDate: "2026-07-31" },
     { id: "closed", status: "CLOSED", dueDate: "2026-07-20" },
-    { id: "later", status: "UNDER_REVIEW", dueDate: "2026-08-15" },
+    { id: "later", status: "UNDER_REVIEW", dueDate: "2099-08-15" },
   ];
 
   assert.deepEqual(remindersForCases(items).map((item) => item.id), ["draft", "soon"]);
