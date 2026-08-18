@@ -6,6 +6,8 @@ import { validateBasicInfo } from "../app/lib/moc/validation.ts";
 
 const validBasicInfo = {
   title: "T-101 배관 변경",
+  writtenDate: "2099-08-01",
+  plannedCompletionDate: "2099-08-10",
   reason: "부식 개선",
   description: "탄소강 배관을 스테인리스 배관으로 변경",
   targetEquipment: "T-101 이송배관",
@@ -14,6 +16,15 @@ const validBasicInfo = {
   changeKind: "NORMAL",
   duration: "PERMANENT",
 };
+
+test("written and planned completion dates are required and cannot be in the past", () => {
+  const missing = validateBasicInfo({ ...validBasicInfo, writtenDate: "", plannedCompletionDate: "" });
+  assert.deepEqual(missing.filter((error) => error.code === "REQUIRED").map((error) => error.field), ["writtenDate", "plannedCompletionDate"]);
+
+  const past = validateBasicInfo({ ...validBasicInfo, writtenDate: "2000-01-01", plannedCompletionDate: "2000-01-02" });
+  assert.ok(past.some((error) => error.code === "PAST_DATE" && error.field === "writtenDate"));
+  assert.ok(past.some((error) => error.code === "PAST_DATE" && error.field === "plannedCompletionDate"));
+});
 
 test("temporary period above 30 inclusive days is rejected", () => {
   const errors = validateBasicInfo({ ...validBasicInfo, duration: "TEMPORARY", temporaryStartDate: "2026-08-01", temporaryEndDate: "2026-08-31" });

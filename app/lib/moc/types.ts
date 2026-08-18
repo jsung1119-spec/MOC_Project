@@ -18,6 +18,7 @@ export type MocWorkflowStatus =
 export interface MocBasicInfo {
   title: string;
   writtenDate?: string;
+  plannedCompletionDate?: string;
   reason: string;
   description: string;
   targetEquipment: string;

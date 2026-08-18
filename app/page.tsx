@@ -287,7 +287,7 @@ export default function Home() {
       author: legacy.author,
       department: legacy.department,
       createdAt: info.writtenDate || legacy.createdAt,
-      dueDate: info.duration === "TEMPORARY" ? info.temporaryEndDate ?? "" : "",
+      dueDate: info.plannedCompletionDate ?? "",
     });
     const item: MocCase = {
       ...legacy,
@@ -317,7 +317,7 @@ export default function Home() {
   }
   function saveNewGuidelineDraft(info: MocBasicInfo, assetType: AssetType) {
     if (active?.schemaVersion === 2 && active.status === "QUESTIONNAIRE_IN_PROGRESS" && !active.replacementDecision) {
-      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, basicInfo: info, guidelineAssetType: assetType });
+      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, dueDate: info.plannedCompletionDate ?? "", basicInfo: info, guidelineAssetType: assetType });
     } else {
       startGuidelineCase(info, assetType, "new", true);
     }
@@ -325,7 +325,7 @@ export default function Home() {
   }
   function continueFromBasicInfo(info: MocBasicInfo, assetType: AssetType) {
     if (active?.schemaVersion === 2 && active.status === "QUESTIONNAIRE_IN_PROGRESS" && !active.replacementDecision) {
-      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, basicInfo: info, guidelineAssetType: assetType });
+      updateCase({ title: info.title.trim() || "임시저장 변경 판단", workType: info.workType, dueDate: info.plannedCompletionDate ?? "", basicInfo: info, guidelineAssetType: assetType });
       go("replacement");
       return;
     }

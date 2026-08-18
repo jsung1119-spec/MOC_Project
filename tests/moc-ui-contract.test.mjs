@@ -6,11 +6,22 @@ const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("new MOC form captures every guideline minimum field", async () => {
   const source = await read("../app/components/moc/NewMocCaseForm.tsx");
-  for (const field of ["title", "writtenDate", "reason", "description", "targetEquipment", "workType", "beforeState", "beforeImageDataUrl", "changeKind", "duration", "temporaryStartDate", "temporaryEndDate"]) {
+  for (const field of ["title", "writtenDate", "plannedCompletionDate", "reason", "description", "targetEquipment", "workType", "beforeState", "beforeImageDataUrl", "changeKind", "duration", "temporaryStartDate", "temporaryEndDate"]) {
     assert.match(source, new RegExp(field));
   }
   assert.match(source, /type="file"/);
   assert.match(source, /validateBasicInfo/);
+});
+
+test("new MOC form places title above future-only written and completion dates and syncs the due date", async () => {
+  const form = await read("../app/components/moc/NewMocCaseForm.tsx");
+  const page = await read("../app/page.tsx");
+
+  assert.match(form, /form-grid basic-info-grid/);
+  assert.match(form, /basic-info-title/);
+  assert.match(form, /label="변경완료 예정"/);
+  assert.match(form, /min=\{today\}/);
+  assert.match(page, /dueDate: info\.plannedCompletionDate \?\? ""/);
 });
 
 test("replacement questionnaire consumes the Appendix 2 dataset", async () => {

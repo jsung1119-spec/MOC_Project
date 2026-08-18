@@ -8,7 +8,7 @@ export interface ValidationError {
 }
 
 const required: Array<[keyof MocBasicInfo, string]> = [
-  ["title", "변경 제목"], ["reason", "변경 사유"], ["description", "변경 내용"],
+  ["title", "변경 제목"], ["writtenDate", "작성일자"], ["plannedCompletionDate", "변경완료 예정일"], ["reason", "변경 사유"], ["description", "변경 내용"],
   ["targetEquipment", "대상 설비/공정"], ["workType", "변경 대상 분야"],
   ["beforeState", "변경 전 상태"],
   ["changeKind", "변경 종류"], ["duration", "변경 구분"],
@@ -27,6 +27,20 @@ export function validateBasicInfo(info: Partial<MocBasicInfo>): ValidationError[
     if (typeof value !== "string" || !value.trim()) {
       errors.push({ field, code: "REQUIRED", message: `${label}을(를) 입력해 주세요.`, action: `${label}을(를) 입력한 뒤 다음 단계로 진행하세요.` });
     }
+  }
+
+  const today = new Date();
+  const todayDate = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  for (const field of ["writtenDate", "plannedCompletionDate"] as const) {
+    const selected = dateOnly(info[field]);
+    if (Number.isFinite(selected) && selected < todayDate) {
+      errors.push({ field, code: "PAST_DATE", message: "과거 날짜는 선택할 수 없습니다.", action: "오늘 이후 날짜를 선택해 주세요." });
+    }
+  }
+  const writtenDate = dateOnly(info.writtenDate);
+  const plannedCompletionDate = dateOnly(info.plannedCompletionDate);
+  if (Number.isFinite(writtenDate) && Number.isFinite(plannedCompletionDate) && plannedCompletionDate < writtenDate) {
+    errors.push({ field: "plannedCompletionDate", code: "COMPLETION_DATE_ORDER", message: "변경완료 예정일이 작성일자보다 빠릅니다.", action: "작성일자 이후 날짜를 선택해 주세요." });
   }
 
   if (info.duration === "TEMPORARY") {

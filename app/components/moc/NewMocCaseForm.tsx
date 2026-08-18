@@ -24,7 +24,7 @@ const assetOptions: Array<{ value: AssetType; label: string; workTypes: WorkType
 ];
 
 const empty: MocBasicInfo = {
-  title: "", writtenDate: new Date().toISOString().slice(0, 10), reason: "", description: "", targetEquipment: "", workType: "기계 설비",
+  title: "", writtenDate: new Date().toISOString().slice(0, 10), plannedCompletionDate: "", reason: "", description: "", targetEquipment: "", workType: "기계 설비",
   beforeState: "", changeKind: "NORMAL", duration: "PERMANENT",
 };
 
@@ -32,6 +32,8 @@ export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack, initialInfo,
   const [info, setInfo] = useState(initialInfo ?? empty);
   const [assetType, setAssetType] = useState<AssetType>(initialAssetType ?? "PUMP");
   const [attempted, setAttempted] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const completionMinimumDate = info.writtenDate && info.writtenDate > today ? info.writtenDate : today;
   useEffect(() => {
     setInfo(initialInfo ?? empty);
     setAssetType(initialAssetType ?? "PUMP");
@@ -50,9 +52,10 @@ export function NewMocCaseForm({ onSubmit, onTemporarySave, onBack, initialInfo,
 
   return <div className="focused-page wide guideline-form"><div className="step-head"><button className="back-link" onClick={onBack}>← 대시보드</button><div><span>변경사항 입력</span><b>1 / 4</b></div><div className="progress-track"><i style={{ width: "25%" }}/></div></div>
     <section className="question-card start-card"><span className="eyebrow">STEP 01 · 변경 발의</span><h1>변경사항을 먼저 알려주세요</h1><p>변경판정과 등급판정에 필요한 기본정보입니다. 입력 내용은 이후 변경 요청/승인서에도 사용됩니다.</p>
-      <div className="form-grid">
-        <GuidelineField label="변경 제목" value={info.title} onChange={(value) => set("title", value)} error={errorFor("title")?.message}/>
-        <GuidelineField type="date" label="작성일자" value={info.writtenDate ?? ""} onChange={(value) => set("writtenDate", value)}/>
+      <div className="form-grid basic-info-grid">
+        <GuidelineField className="basic-info-title" label="변경 제목" value={info.title} onChange={(value) => set("title", value)} error={errorFor("title")?.message}/>
+        <GuidelineField type="date" label="작성일자" value={info.writtenDate ?? ""} min={today} onChange={(value) => set("writtenDate", value)} error={errorFor("writtenDate")?.message}/>
+        <GuidelineField type="date" label="변경완료 예정" value={info.plannedCompletionDate ?? ""} min={completionMinimumDate} onChange={(value) => set("plannedCompletionDate", value)} error={errorFor("plannedCompletionDate")?.message}/>
         <label className="field"><span>변경 대상 분야</span><select value={info.workType} onChange={(event) => { const value = event.target.value as WorkType; set("workType", value); const first = assetOptions.find((option) => option.workTypes.includes(value)); if (first) setAssetType(first.value); }}>{workTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
         <GuidelineField label="대상 설비 / 공정" value={info.targetEquipment} onChange={(value) => set("targetEquipment", value)} error={errorFor("targetEquipment")?.message}/>
         <label className="field"><span>세부 판정 대상</span><select value={assetType} onChange={(event) => setAssetType(event.target.value as AssetType)}>{assets.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
@@ -81,6 +84,6 @@ function BeforeStatePhoto({ value, onChange }: { value?: string; onChange: (valu
   return <div className="field before-photo-field"><span>변경 전 상태 사진 <small>선택</small></span><p>현장 또는 설비의 현재 상태 사진을 1장 첨부할 수 있습니다. (최대 2MB)</p><input aria-label="변경 전 상태 사진" type="file" accept="image/*" onChange={selectPhoto}/>{error && <small className="field-error">{error}</small>}{value && <div className="before-photo-preview"><img src={value} alt="변경 전 상태 첨부 사진"/><button type="button" className="btn ghost" onClick={() => onChange(undefined)}>사진 삭제</button></div>}</div>;
 }
 
-function GuidelineField({ label, value, onChange, error, area, type = "text" }: { label: string; value: string; onChange: (value: string) => void; error?: string; area?: boolean; type?: string }) {
-  return <label className={`field ${error ? "missing" : ""}`}><span>{label}<em>*</em></span>{area ? <textarea value={value} onChange={(event) => onChange(event.target.value)}/> : <input type={type} value={value} onInput={(event) => onChange(event.currentTarget.value)}/>} {error && <small className="field-error">{error}</small>}</label>;
+function GuidelineField({ label, value, onChange, error, area, type = "text", min, className = "" }: { label: string; value: string; onChange: (value: string) => void; error?: string; area?: boolean; type?: string; min?: string; className?: string }) {
+  return <label className={`field ${className} ${error ? "missing" : ""}`}><span>{label}<em>*</em></span>{area ? <textarea value={value} onChange={(event) => onChange(event.target.value)}/> : <input type={type} value={value} onInput={(event) => onChange(event.currentTarget.value)} min={min}/>} {error && <small className="field-error">{error}</small>}</label>;
 }
