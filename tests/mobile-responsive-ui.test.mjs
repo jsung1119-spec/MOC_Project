@@ -33,3 +33,11 @@ test("mobile drawer keeps menu labels together and exposes all navigation items"
   assert.match(css, /\.sidebar nav button,[\s\S]*?font-size:14px[\s\S]*?white-space:nowrap/);
   assert.match(css, /\.sidebar nav button span\{[\s\S]*?flex:0 0 23px/);
 });
+
+test("mobile copy keeps short labels together while long descriptions wrap by words", async () => {
+  const css = await read("../app/globals.css");
+
+  assert.match(css, /\.card-head\{[\s\S]*?align-items:flex-start[\s\S]*?flex-wrap:wrap/);
+  assert.match(css, /\.card-head h2,[\s\S]*?\.result-meta span\{[\s\S]*?white-space:nowrap/);
+  assert.match(css, /\.card-head p,[\s\S]*?\.result-hero p\{[\s\S]*?word-break:keep-all[\s\S]*?overflow-wrap:break-word/);
+});
